@@ -1,5 +1,28 @@
-import streamlit as st
 import os
+import shutil
+
+# --- WINDOWS SYMLINK FIX (No Admin Required) ---
+if hasattr(os, 'symlink'):
+    _orig_symlink = os.symlink
+
+
+    def _safe_symlink(src, dst, target_is_directory=False, **kwargs):
+        try:
+            _orig_symlink(src, dst, target_is_directory=target_is_directory, **kwargs)
+        except OSError as e:
+            if getattr(e, 'winerror', None) == 1314:  # Privilege not held
+                if os.path.isdir(src):
+                    shutil.copytree(src, dst)
+                else:
+                    shutil.copy2(src, dst)
+            else:
+                raise
+
+
+    os.symlink = _safe_symlink
+# -----------------------------------------------
+
+import streamlit as st
 import tempfile
 import numpy as np
 import json
@@ -24,7 +47,6 @@ def load_modules():
 face_module, voice_module = load_modules()
 
 # --- Session State ---
-# This acts as our temporary memory during the presentation
 if 'target_uuid' not in st.session_state:
     st.session_state['target_uuid'] = None
 
@@ -36,7 +58,7 @@ st.divider()
 
 # The "Architecture Flex" Dropdown
 modality = st.radio("Select Active Biometric Modality:",
-                    ["Face Recognition (ArcFace + MTCNN)", "Acoustic Voice (Stub)"])
+                    ["Face Recognition (ArcFace + MTCNN)", "Acoustic Voice (SpeechBrain X-Vector)"])
 active_module = face_module if "Face" in modality else voice_module
 file_type = ["jpg", "jpeg", "png"] if "Face" in modality else ["wav", "mp3", "m4a"]
 
@@ -53,25 +75,20 @@ with col1:
 
     if st.button("Register Identity") and enroll_file:
         with st.spinner("Processing biometric data..."):
-            # Streamlit files are kept in memory. We write it to a temp file for OpenCV/librosa.
             with tempfile.NamedTemporaryFile(delete=False, suffix=f".{enroll_file.name.split('.')[-1]}") as t:
                 t.write(enroll_file.read())
                 temp_path = t.name
 
             db = DatabaseManager(database="biometric_system")
             try:
-                # Create the user and get the UUID
                 random_id = db.create_person(national_id=str(np.random.randint(100000, 999999)), full_name="Demo User")
 
-                # Interface execution (Blind to whether it's Face or Voice)
                 cleaned_bytes = active_module.process_raw(temp_path)
                 vector = active_module.extract_vector(cleaned_bytes)
 
-                # Save to MySQL
                 db.save_raw_data(random_id, active_module.method_name, enroll_file.name.split('.')[-1], cleaned_bytes)
                 db.save_vector(random_id, active_module.method_name, "enrollment", vector.tolist())
 
-                # Save UUID to session memory for Phase 2
                 st.session_state['target_uuid'] = random_id
                 st.success(f"Identity Enrolled Successfully!\n\n**UUID:** `{random_id}`")
 
@@ -93,18 +110,16 @@ with col2:
         verify_file = st.file_uploader("Upload Live Sample", type=file_type, key="verify")
 
         if st.button("Authenticate") and verify_file:
-            with st.spinner("Analyzing geometry..."):
+            with st.spinner("Analyzing biometric signature..."):
                 with tempfile.NamedTemporaryFile(delete=False, suffix=f".{verify_file.name.split('.')[-1]}") as t:
                     t.write(verify_file.read())
                     temp_path = t.name
 
                 db = DatabaseManager(database="biometric_system")
                 try:
-                    # Process live sample
                     cleaned_bytes = active_module.process_raw(temp_path)
                     live_vector = active_module.extract_vector(cleaned_bytes)
 
-                    # Fetch stored vector from MySQL
                     db.cursor.execute(
                         "SELECT vector_512 FROM Method_retrieval_vectors WHERE random_id = %s AND method = %s",
                         (st.session_state['target_uuid'], active_module.method_name)
@@ -114,7 +129,6 @@ with col2:
                     if result and result['vector_512']:
                         saved_vector = np.array(json.loads(result['vector_512']))
 
-                        # Execute mathematical comparison
                         scores = active_module.compare_vectors(saved_vector, live_vector)
 
                         st.write(f"**Cosine Similarity:** `{scores['cosine_similarity']:.4f}`")
@@ -125,7 +139,7 @@ with col2:
 
                         if scores['cosine_similarity'] > threshold:
                             st.success("✅ AUTHENTICATION SUCCESSFUL: Identity Confirmed.")
-                            st.balloons()  # A little presentation flair
+                            st.balloons()
                         else:
                             st.error("❌ AUTHENTICATION FAILED: Vectors do not match.")
                     else:

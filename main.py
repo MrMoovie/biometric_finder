@@ -84,5 +84,5 @@ def main():
     print("\nSystem shut down cleanly.")
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
