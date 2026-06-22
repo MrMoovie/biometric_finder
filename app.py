@@ -5,7 +5,6 @@ import shutil
 if hasattr(os, 'symlink'):
     _orig_symlink = os.symlink
 
-
     def _safe_symlink(src, dst, target_is_directory=False, **kwargs):
         try:
             _orig_symlink(src, dst, target_is_directory=target_is_directory, **kwargs)
@@ -18,7 +17,6 @@ if hasattr(os, 'symlink'):
             else:
                 raise
 
-
     os.symlink = _safe_symlink
 # -----------------------------------------------
 
@@ -26,9 +24,12 @@ import streamlit as st
 import tempfile
 import numpy as np
 import json
+
 from db_manager import DatabaseManager
+
 from face_module import FaceBiometricModule
 from voice_module import VoiceBiometricModule
+from gait_module import GaitBiometricModule
 
 # Suppress TensorFlow logs for a clean terminal
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
@@ -37,14 +38,12 @@ os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 # --- Initialization ---
 st.set_page_config(page_title="Biometric PoC", layout="wide")
 
-
 @st.cache_resource
 def load_modules():
     # This caches the AI models so they don't reload on every click
-    return FaceBiometricModule(), VoiceBiometricModule()
+    return FaceBiometricModule(), VoiceBiometricModule(), GaitBiometricModule()
 
-
-face_module, voice_module = load_modules()
+face_module, voice_module, gait_module = load_modules()
 
 # --- Session State ---
 if 'target_uuid' not in st.session_state:
@@ -58,9 +57,20 @@ st.divider()
 
 # The "Architecture Flex" Dropdown
 modality = st.radio("Select Active Biometric Modality:",
-                    ["Face Recognition (ArcFace + MTCNN)", "Acoustic Voice (SpeechBrain X-Vector)"])
-active_module = face_module if "Face" in modality else voice_module
-file_type = ["jpg", "jpeg", "png"] if "Face" in modality else ["wav", "mp3", "m4a"]
+                    ["Face Recognition (ArcFace + MTCNN)",
+                     "Acoustic Voice (WavLM-SV)",
+                     "Gait Dynamics (MediaPipe)"])
+
+# Route the active module and permitted file extensions dynamically
+if "Face" in modality:
+    active_module = face_module
+    file_type = ["jpg", "jpeg", "png"]
+elif "Voice" in modality:
+    active_module = voice_module
+    file_type = ["wav"]
+else:
+    active_module = gait_module
+    file_type = ["mp4", "mov", "avi"]
 
 st.divider()
 
@@ -135,7 +145,12 @@ with col2:
                         st.write(f"**Euclidean Distance:** `{scores['euclidean_distance']:.4f}`")
 
                         # Dynamic threshold based on active module
-                        threshold = 0.35 if "Face" in modality else 0.80
+                        if "Face" in modality:
+                            threshold = 0.35
+                        elif "Voice" in modality:
+                            threshold = 0.72
+                        else:
+                            threshold = 0.960
 
                         if scores['cosine_similarity'] > threshold:
                             st.success("✅ AUTHENTICATION SUCCESSFUL: Identity Confirmed.")
