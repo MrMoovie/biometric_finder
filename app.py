@@ -1,15 +1,17 @@
 import os
 import shutil
+import streamlit as st
 
-# --- WINDOWS SYMLINK FIX (No Admin Required) ---
+# --- WINDOWS SYMLINK FIX ---
 if hasattr(os, 'symlink'):
     _orig_symlink = os.symlink
+
 
     def _safe_symlink(src, dst, target_is_directory=False, **kwargs):
         try:
             _orig_symlink(src, dst, target_is_directory=target_is_directory, **kwargs)
         except OSError as e:
-            if getattr(e, 'winerror', None) == 1314:  # Privilege not held
+            if getattr(e, 'winerror', None) == 1314:
                 if os.path.isdir(src):
                     shutil.copytree(src, dst)
                 else:
@@ -17,151 +19,103 @@ if hasattr(os, 'symlink'):
             else:
                 raise
 
+
     os.symlink = _safe_symlink
-# -----------------------------------------------
 
-import streamlit as st
-import tempfile
-import numpy as np
-import json
+from fusion_engine import BiometricFusionEngine
 
-from db_manager import DatabaseManager
-
-from face_module import FaceBiometricModule
-from voice_module import VoiceBiometricModule
-from gait_module import GaitBiometricModule
-
-# Suppress TensorFlow logs for a clean terminal
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
-# --- Initialization ---
-st.set_page_config(page_title="Biometric PoC", layout="wide")
+st.set_page_config(page_title="Forensic Biometric Search", layout="wide")
+
 
 @st.cache_resource
-def load_modules():
-    # This caches the AI models so they don't reload on every click
-    return FaceBiometricModule(), VoiceBiometricModule(), GaitBiometricModule()
+def load_engine():
+    return BiometricFusionEngine()
 
-face_module, voice_module, gait_module = load_modules()
 
-# --- Session State ---
-if 'target_uuid' not in st.session_state:
-    st.session_state['target_uuid'] = None
+engine = load_engine()
 
-# --- UI Layout ---
-st.title("🧬 Biometric Authentication Pipeline")
-st.markdown("Proof of Concept: Independent Modality Processing & Database Routing")
-
+st.title("🌐 Global Biometric Identification System (1-to-N)")
+st.markdown("Forensic Search Engine: Upload a probe to identify unknown subjects across the database.")
 st.divider()
 
-# The "Architecture Flex" Dropdown
-modality = st.radio("Select Active Biometric Modality:",
-                    ["Face Recognition (ArcFace + MTCNN)",
-                     "Acoustic Voice (WavLM-SV)",
-                     "Gait Dynamics (MediaPipe)"])
+# UI Routing Dictionary
+MODALITY_MAP = {
+    "Face Recognition (ArcFace + MTCNN)": {"key": "FACE", "ext": ["jpg", "jpeg", "png"]},
+    "Acoustic Voice (WavLM-SV)": {"key": "VOICE", "ext": ["wav"]},
+    "Gait Dynamics (MediaPipe)": {"key": "GAIT", "ext": ["mp4", "mov", "avi"]}
+}
 
-# Route the active module and permitted file extensions dynamically
-if "Face" in modality:
-    active_module = face_module
-    file_type = ["jpg", "jpeg", "png"]
-elif "Voice" in modality:
-    active_module = voice_module
-    file_type = ["wav"]
-else:
-    active_module = gait_module
-    file_type = ["mp4", "mov", "avi"]
+selection = st.radio("Select Target Sensor Data:", list(MODALITY_MAP.keys()), horizontal=True)
+active_key = MODALITY_MAP[selection]["key"]
+allowed_ext = MODALITY_MAP[selection]["ext"]
 
 st.divider()
-
 col1, col2 = st.columns(2)
 
-# --- PHASE 1: ENROLLMENT ---
+# --- PHASE 1: DATABASE POPULATION ---
 with col1:
-    st.header("1. Baseline Enrollment")
-    st.write("Register a new user identity.")
+    st.header("1. Populate Database")
+    st.write("Enroll a known identity into the watchlist.")
 
-    enroll_file = st.file_uploader("Upload Enrollment Sample", type=file_type, key="enroll")
+    enroll_name = st.text_input("Subject Full Name (e.g., John Doe)")
+    national_id = st.text_input("Subject National ID (123456789)")
+    enroll_file = st.file_uploader("Upload Baseline Sample", type=allowed_ext, key="enroll")
 
-    if st.button("Register Identity") and enroll_file:
-        with st.spinner("Processing biometric data..."):
-            with tempfile.NamedTemporaryFile(delete=False, suffix=f".{enroll_file.name.split('.')[-1]}") as t:
-                t.write(enroll_file.read())
-                temp_path = t.name
-
-            db = DatabaseManager(database="biometric_system")
+    if st.button("Add to Watchlist") and enroll_file and enroll_name and national_id:
+        with st.spinner("Processing biometric signature..."):
             try:
-                random_id = db.create_person(national_id=str(np.random.randint(100000, 999999)), full_name="Demo User")
+                # ALL LOGIC DELEGATED TO ENGINE
+                result = engine.enroll_identity(
+                    national_id=national_id,
+                    full_name=enroll_name,
+                    raw_bytes=enroll_file.read(),
+                    filename=enroll_file.name,
+                    modality_key=active_key
+                )
 
-                cleaned_bytes = active_module.process_raw(temp_path)
-                vector = active_module.extract_vector(cleaned_bytes)
-
-                db.save_raw_data(random_id, active_module.method_name, enroll_file.name.split('.')[-1], cleaned_bytes)
-                db.save_vector(random_id, active_module.method_name, "enrollment", vector.tolist())
-
-                st.session_state['target_uuid'] = random_id
-                st.success(f"Identity Enrolled Successfully!\n\n**UUID:** `{random_id}`")
-
+                if result["exists"]:
+                    st.success(f"Identity Exists: {result['name']}\nID: {national_id}\n\nUUID: `{result['uuid']}`")
+                else:
+                    st.success(f"Identity Enrolled: {result['name']}\nID: {national_id}\n\nUUID: `{result['uuid']}`")
             except Exception as e:
                 st.error(f"System Error: {e}")
-            finally:
-                db.close()
-                os.unlink(temp_path)
 
-# --- PHASE 2: VERIFICATION ---
+# --- PHASE 2: FORENSIC SEARCH (1-to-N) ---
 with col2:
-    st.header("2. Live Authentication")
-    st.write("Compare a live sample against the database.")
+    st.header("2. Forensic Search")
+    st.write("Upload an unknown probe to scan the database for matches.")
 
-    if st.session_state['target_uuid'] is None:
-        st.info("👈 Please register a baseline identity first.")
-    else:
-        st.info(f"**Target Identity:** `{st.session_state['target_uuid']}`")
-        verify_file = st.file_uploader("Upload Live Sample", type=file_type, key="verify")
+    search_file = st.file_uploader("Upload Unknown Probe", type=allowed_ext, key="search")
 
-        if st.button("Authenticate") and verify_file:
-            with st.spinner("Analyzing biometric signature..."):
-                with tempfile.NamedTemporaryFile(delete=False, suffix=f".{verify_file.name.split('.')[-1]}") as t:
-                    t.write(verify_file.read())
-                    temp_path = t.name
+    if st.button("Initiate Database Scan") and search_file:
+        with st.spinner("Scanning database..."):
+            try:
+                # ALL LOGIC DELEGATED TO ENGINE
+                result = engine.identify_probe(
+                    raw_bytes=search_file.read(),
+                    filename=search_file.name,
+                    modality_key=active_key
+                )
 
-                db = DatabaseManager(database="biometric_system")
-                try:
-                    cleaned_bytes = active_module.process_raw(temp_path)
-                    live_vector = active_module.extract_vector(cleaned_bytes)
+                if result["status"] == "empty_db":
+                    st.error("The database is currently empty for this modality.")
+                else:
+                    st.markdown("### 📊 Search Results")
+                    st.write(f"Scanned **{result['scanned_count']}** distinct biometric records.")
 
-                    db.cursor.execute(
-                        "SELECT vector_512 FROM Method_retrieval_vectors WHERE random_id = %s AND method = %s",
-                        (st.session_state['target_uuid'], active_module.method_name)
-                    )
-                    result = db.cursor.fetchone()
-
-                    if result and result['vector_512']:
-                        saved_vector = np.array(json.loads(result['vector_512']))
-
-                        scores = active_module.compare_vectors(saved_vector, live_vector)
-
-                        st.write(f"**Cosine Similarity:** `{scores['cosine_similarity']:.4f}`")
-                        st.write(f"**Euclidean Distance:** `{scores['euclidean_distance']:.4f}`")
-
-                        # Dynamic threshold based on active module
-                        if "Face" in modality:
-                            threshold = 0.35
-                        elif "Voice" in modality:
-                            threshold = 0.72
-                        else:
-                            threshold = 0.960
-
-                        if scores['cosine_similarity'] > threshold:
-                            st.success("✅ AUTHENTICATION SUCCESSFUL: Identity Confirmed.")
-                            st.balloons()
-                        else:
-                            st.error("❌ AUTHENTICATION FAILED: Vectors do not match.")
+                    if result["is_match"]:
+                        st.success(f"🚨 **MATCH FOUND: {result['person_name']}**")
+                        st.write(f"**UUID Profile:** `{result['uuid']}`")
+                        st.write(f"**Score:** `{result['top_score']:.4f}`")
+                        st.balloons()
                     else:
-                        st.error("Database Error: No baseline found for this specific modality.")
+                        st.warning("⚠️ **NO MATCH FOUND**")
+                        st.write("The closest candidate fell outside the security threshold.")
+                        st.write(f"**Closest Candidate:** {result['person_name']} (`{result['uuid']}`)")
+                        st.write(f"**Score (FAILED):** `{result['top_score']:.4f}`")
 
-                except Exception as e:
-                    st.error(f"System Error: {e}")
-                finally:
-                    db.close()
-                    os.unlink(temp_path)
+            except Exception as e:
+                st.error(f"Search Failed: {e}")

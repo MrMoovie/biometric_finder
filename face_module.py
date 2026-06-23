@@ -14,15 +14,31 @@ class FaceBiometricModule(BiometricModule):
     def method_name(self) -> str:
         return "FACE"
 
-    def process_raw(self, raw_file_path: str) -> bytes:
-        """Reads the image, validates it, and returns bytes for DB storage."""
-        print(f"[{self.method_name}] Loading raw file: {raw_file_path}")
-        img = cv2.imread(raw_file_path)
+    def process_raw(self, file_path):
+        """
+        Reads the image, downscales it to prevent OOM,
+        and re-encodes it back into raw bytes for the extraction engine.
+        """
+        # 1. Read the raw image using OpenCV
+        img = cv2.imread(file_path)
         if img is None:
-            raise ValueError(f"Could not read image at {raw_file_path}. Check the path.")
+            raise ValueError(f"System Error: OpenCV could not read the image at {file_path}. File may be corrupted.")
 
-        # Encode to bytes for LONGBLOB database storage
-        _, buffer = cv2.imencode('.jpg', img)
+        # 2. The Defense Mechanism: Clamp maximum resolution to 1080 pixels
+        max_dimension = 1080
+        height, width = img.shape[:2]
+
+        if max(height, width) > max_dimension:
+            scaling_factor = max_dimension / float(max(height, width))
+            new_size = (int(width * scaling_factor), int(height * scaling_factor))
+            img = cv2.resize(img, new_size, interpolation=cv2.INTER_AREA)
+
+        # 3. RE-ENCODE: Compress the shrunken image back into standard JPEG bytes
+        success, buffer = cv2.imencode('.jpg', img)
+        if not success:
+            raise ValueError("System Error: OpenCV failed to re-encode the image buffer.")
+
+        # Return raw bytes exactly as the original architecture expected
         return buffer.tobytes()
 
     def extract_vector(self, cleaned_data: bytes) -> np.ndarray:
