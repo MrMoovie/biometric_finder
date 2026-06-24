@@ -9,7 +9,7 @@ import numpy as np
 
 
 class DatabaseManager:
-    def __init__(self, host="localhost", user="root", password="102030", database="biometric_system"):
+    def __init__(self, host="localhost", user="root", password="1234", database="biometric_system"):
         # Connect to MySQL
         self.conn = mysql.connector.connect(
             host=host,

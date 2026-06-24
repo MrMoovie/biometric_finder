@@ -11,18 +11,18 @@ CHUNK_SIZE = 1000  # How many to push to MySQL at once to prevent timeouts
 
 
 def generate_dummy_data(db):
-    print(f"🚀 INITIATING STRESS TEST: Generating {TARGET_POPULATION} synthetic profiles...")
+    print(f"INITIATING STRESS TEST: Generating {TARGET_POPULATION} synthetic profiles...")
 
     # 1. Check current database size
     db.cursor.execute("SELECT COUNT(*) as count FROM method_retrieval_vectors WHERE method = 'FACE'")
     current_count = db.cursor.fetchone()['count']
 
     if current_count >= TARGET_POPULATION:
-        print(f"✅ Database already contains {current_count} vectors. Skipping generation.")
+        print(f"Database already contains {current_count} vectors. Skipping generation.")
         return
 
     needed = TARGET_POPULATION - current_count
-    print(f"⏳ Injecting {needed} new profiles. This will take a moment...")
+    print(f"Injecting {needed} new profiles. This will take a moment...")
 
     # 2. Fast Bulk Insert using executemany
     db.cursor.execute("SET FOREIGN_KEY_CHECKS = 0;")
@@ -52,11 +52,11 @@ def generate_dummy_data(db):
         print(f"   -> Inserted {i + chunk} / {needed}...")
 
     db.cursor.execute("SET FOREIGN_KEY_CHECKS = 1;")
-    print("✅ Synthetic population fully injected.\n")
+    print("Synthetic population fully injected.\n")
 
 
 def run_benchmark(db, face_module):
-    print("⏱️  STARTING BENCHMARK: Linear Search Loop")
+    print("STARTING BENCHMARK: Linear Search Loop")
 
     # Generate one fake "Unknown Probe" to search for
     probe_vector = np.random.rand(512)
@@ -83,13 +83,13 @@ def run_benchmark(db, face_module):
 
     # Print the Executive Report
     print("\n" + "=" * 50)
-    print("📊 STRESS TEST RESULTS")
+    print("STRESS TEST RESULTS")
     print("=" * 50)
     print(f"Total Profiles Scanned: {len(database_vectors):,}")
     print(f"Database Fetch Time:    {(t_fetch_end - t_fetch_start):.4f} seconds")
     print(f"Python CPU Math Time:   {(t_total_end - t_fetch_end):.4f} seconds")
     print("-" * 50)
-    print(f"🚨 TOTAL SEARCH LATENCY: {(t_total_end - t0):.4f} seconds")
+    print(f"TOTAL SEARCH LATENCY: {(t_total_end - t0):.4f} seconds")
     print("=" * 50)
 
 
