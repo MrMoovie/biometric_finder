@@ -1,0 +1,2707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BIOMATRIX CORE - Global Biometric Search</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=JetBrains+Mono:wght@300;400;700&display=swap" rel="stylesheet">
+    <style>
+        /* CSS DESIGN SYSTEM */
+        :root {
+            --bg-color: #f3f4f6;
+            --card-bg: #ffffff;
+            --border-color: #000000;
+            --text-color: #111111;
+            --text-muted: #555555;
+            --accent-green: #00c853;
+            --accent-green-dim: rgba(0, 200, 83, 0.12);
+            --accent-red: #d50000;
+            --accent-red-dim: rgba(213, 0, 0, 0.12);
+            --font-mono: 'JetBrains Mono', 'Share Tech Mono', monospace;
+            --font-display: 'Share Tech Mono', monospace;
+            --grid-dot-color: #d1d5db;
+            --wheel-circle-stroke: rgba(0, 0, 0, 0.25);
+            --wheel-line-stroke: rgba(0, 0, 0, 0.12);
+            --timeline-gradient: linear-gradient(to bottom, #f3f4f6 0%, rgba(243, 244, 246, 0) 100%);
+        }
+
+        body.dark-theme {
+            --bg-color: #000000;
+            --card-bg: #161616; /* Clean dark gray for card containers */
+            --border-color: #ffffff; /* White for border highlights */
+            --text-color: #ffffff; /* White for main text */
+            --text-muted: #888888; /* Pure dark gray for muted text */
+            --accent-green: #4ade80;
+            --accent-green-dim: rgba(74, 222, 128, 0.15);
+            --accent-red: #f87171;
+            --accent-red-dim: rgba(248, 113, 113, 0.15);
+            --grid-dot-color: #222222; /* Dark gray for grid spacing */
+            --wheel-circle-stroke: rgba(255, 255, 255, 0.35);
+            --wheel-line-stroke: rgba(255, 255, 255, 0.15);
+            --timeline-gradient: linear-gradient(to bottom, #000000 0%, rgba(0, 0, 0, 0) 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-mono);
+        }
+
+        /* FULL VIEWPORT LOCK (ZERO SCROLLBAR) */
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* REACTIVE CANVAS BACKGROUND */
+        #bg-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        /* HEADER SECTION */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 40px;
+            border-bottom: 2px solid var(--border-color);
+            background-color: var(--card-bg);
+            flex-shrink: 0;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+            z-index: 10;
+        }
+
+        header nav {
+            flex: 0 0 auto;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .logo {
+            font-family: var(--font-mono); /* JetBrains Mono */
+            font-size: 32px;
+            font-weight: 700;
+            letter-spacing: 3px;
+            text-transform: none; /* Removed uppercase transformation */
+            text-align: left;
+            flex: 1;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+        }
+
+        nav {
+            display: flex;
+            gap: 15px;
+        }
+
+        .nav-tab {
+            background: transparent;
+            border: 1px solid transparent;
+            color: var(--text-color);
+            padding: 6px 18px;
+            font-size: 13px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+        }
+
+        .nav-tab:hover {
+            border: 1px solid var(--border-color);
+        }
+
+        .nav-tab.active {
+            background-color: var(--border-color);
+            color: var(--card-bg);
+            border: 1px solid var(--border-color);
+        }
+
+        .header-status {
+            flex: 1;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--accent-green);
+            border-radius: 50%;
+            display: inline-block;
+            box-shadow: 0 0 8px var(--accent-green);
+            animation: pulse 2s infinite;
+        }
+
+        .theme-toggle-btn, .settings-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s ease;
+        }
+
+        .theme-toggle-btn:hover, .settings-btn:hover {
+            background-color: var(--border-color);
+            color: var(--card-bg);
+        }
+
+        /* TIMELINE STEPS */
+        .timeline-container {
+            width: 100%;
+            max-width: 100%;
+            margin: 0;
+            padding: 20px 40px 30px 40px;
+            background: var(--timeline-gradient);
+            border: none;
+            box-shadow: none;
+            display: flex;
+            justify-content: center;
+            position: relative;
+            flex-shrink: 0;
+            z-index: 9;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        .timeline {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            max-width: 900px;
+            position: relative;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background-color: var(--text-muted);
+            opacity: 0.25;
+            z-index: 1;
+        }
+
+        .timeline-progress-bar {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            height: 2px;
+            background-color: var(--border-color);
+            z-index: 2;
+            width: 33%;
+            transition: width 0.5s ease, background-color 0.3s ease;
+        }
+
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            z-index: 3;
+            width: 120px;
+        }
+
+        .step-circle {
+            width: 30px;
+            height: 30px;
+            border: 1.5px solid var(--text-muted);
+            background-color: var(--bg-color);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 6px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .step-circle::after {
+            content: '';
+            width: 6px;
+            height: 6px;
+            background-color: var(--text-muted);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .step.active .step-circle {
+            border: 2px solid var(--border-color);
+        }
+
+        .step.active .step-circle::after {
+            background-color: var(--border-color);
+            transform: scale(1.4);
+        }
+
+        .step.completed .step-circle {
+            border: 1.5px solid var(--border-color);
+            background-color: var(--border-color);
+        }
+
+        .step.completed .step-circle::after {
+            background-color: var(--card-bg);
+            transform: scale(1);
+        }
+
+        .step-label {
+            font-size: 9px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            text-align: center;
+            transition: color 0.3s ease;
+        }
+
+        .step.active .step-label,
+        .step.completed .step-label {
+            color: var(--text-color);
+        }
+
+        /* MAIN CONTENT VIEWPORTS - ADAPTIVE LAYOUT (ZERO SCROLL) */
+        main {
+            flex: 1;
+            padding: 0 80px; /* Ample padding on the edges */
+            max-width: 100%; /* Expands to full screen width */
+            width: 100%;
+            display: flex;
+            justify-content: space-between; /* Pins left column to far left, right card to far right */
+            align-items: center;
+            overflow: hidden; /* Lock viewport from scrolling */
+        }
+
+        /* LEFT SIDE - NO BORDERS OR CARD BOX, FLOATING & SIGNIFICANTLY LARGER */
+        .left-column {
+            width: 500px;
+            height: 520px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+            position: relative;
+            flex-shrink: 0;
+        }
+
+        /* RIGHT SIDE - WIDER MEDIA UPLOAD CARD POSITIONED FURTHER RIGHT */
+        .right-column {
+            width: 580px;
+            height: 520px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        /* NEURAL WHEEL DIAL - SIGNIFICANTLY LARGER & PERFECTLY SYMMETRICAL */
+        .wheel-container {
+            position: relative;
+            width: 480px;
+            height: 480px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .svg-wheel {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform: rotate(0deg);
+            transition: transform 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+        }
+
+        .svg-wheel circle {
+            stroke: var(--wheel-circle-stroke);
+            transition: stroke 0.3s ease;
+        }
+
+        .svg-wheel line {
+            stroke: var(--wheel-line-stroke);
+            transition: stroke 0.3s ease;
+        }
+
+        /* SPINNING KEYFRAMES & ROBUST 240px CENTER ROTATIONS */
+        .rotating-ring {
+            transform-origin: 240px 240px;
+            transform-box: view-box;
+            animation: slowRotate 40s linear infinite;
+        }
+
+        .rotating-ring-reverse {
+            transform-origin: 240px 240px;
+            transform-box: view-box;
+            animation: slowRotateReverse 25s linear infinite;
+        }
+
+        .wheel-center-button {
+            position: absolute;
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background-color: var(--card-bg);
+            border: 2px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.04);
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .wheel-center-button:hover {
+            transform: scale(1.02);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+        }
+
+        .wheel-center-icon {
+            width: 64px;
+            height: 64px;
+            transition: all 0.3s ease;
+        }
+
+        .wheel-center-icon svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .wheel-node {
+            position: absolute;
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background-color: var(--card-bg);
+            border: 2px solid var(--border-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 12;
+            transition: all 0.3s ease;
+            color: var(--text-color);
+        }
+
+        .wheel-node:hover {
+            transform: scale(1.08);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .wheel-node.active {
+            background-color: var(--border-color);
+            box-shadow: 0 0 12px rgba(0,0,0,0.1);
+            color: var(--card-bg);
+        }
+
+        /* UPLOADED BIOMETRIC INDICATION GLOW */
+        .wheel-node.uploaded {
+            border-color: var(--accent-green) !important;
+            box-shadow: 0 0 15px var(--accent-green) !important;
+            color: var(--accent-green) !important;
+        }
+
+        .wheel-node.active.uploaded {
+            background-color: var(--accent-green) !important;
+            border-color: var(--accent-green) !important;
+            box-shadow: 0 0 15px var(--accent-green) !important;
+            color: var(--card-bg) !important;
+        }
+
+        .wheel-node svg {
+            width: 20px;
+            height: 20px;
+            transition: all 0.3s ease;
+        }
+
+        /* INVERT BLACK PNG ICONS FOR CONTRAST */
+        /* Light Theme Active States: black background -> white icon */
+        .wheel-node.active image,
+        .wheel-node.active.uploaded image {
+            filter: invert(1);
+        }
+
+        /* Dark Theme Default: dark background -> white icon */
+        body.dark-theme .wheel-node image,
+        body.dark-theme .wheel-center-icon image {
+            filter: invert(1);
+        }
+
+        /* Dark Theme Active States: white background -> black icon */
+        body.dark-theme .wheel-node.active image,
+        body.dark-theme .wheel-node.active.uploaded image {
+            filter: none;
+        }
+
+        /* 100% VISUALLY & MATHEMATICALLY SYMMETRICAL NODES ON THE 480x480 WHEEL */
+        .node-0 { top: 26px; left: 218px; }        /* Top: Gait */
+        .node-1 { top: 314px; right: 52px; }       /* Bottom-Right: Voice */
+        .node-2 { top: 314px; left: 52px; }        /* Bottom-Left: Face */
+
+        .wheel-instruction {
+            margin-top: 10px;
+            font-size: 9px;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            letter-spacing: 1.5px;
+            text-align: center;
+            z-index: 5;
+        }
+
+        /* TECH PANEL CARD - CONSISTENT DESIGN & SIZE */
+        .tech-card {
+            background-color: var(--card-bg);
+            border: 2px solid var(--border-color);
+            padding: 35px;
+            position: relative;
+            box-shadow: 0 6px 0px var(--border-color);
+            height: 520px; /* Match left column height perfectly */
+            display: flex;
+            flex-direction: column;
+            transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .active-mode-indicator {
+            font-size: 10px;
+            font-weight: bold;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .indicator-square {
+            width: 8px;
+            height: 8px;
+            background-color: var(--border-color);
+            display: inline-block;
+            transition: background-color 0.3s ease;
+        }
+
+        .panel-title {
+            font-family: var(--font-display);
+            font-size: 28px;
+            font-weight: 700;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+            letter-spacing: 1px;
+        }
+
+        .panel-description {
+            font-size: 12px;
+            line-height: 1.5;
+            color: var(--text-muted);
+            margin-bottom: 15px;
+            min-height: 55px;
+        }
+
+        .tag-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+
+        .tech-tag {
+            font-size: 9.5px;
+            font-weight: bold;
+            border: 1.5px solid var(--border-color);
+            padding: 3px 8px;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            border-radius: 2px;
+            transition: border-color 0.3s ease;
+        }
+
+        /* INTEGRATED UPLOAD STATUS LIST */
+        .probes-status-container {
+            margin-bottom: 15px;
+            border: 2px solid var(--border-color);
+            padding: 10px 15px;
+            background-color: rgba(0, 0, 0, 0.02);
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        body.dark-theme .probes-status-container {
+            background-color: rgba(255, 255, 255, 0.02);
+        }
+
+        .probe-status-item {
+            font-size: 10px;
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+
+        .probe-status-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .probe-status-val {
+            color: var(--text-muted);
+            font-weight: normal;
+        }
+
+        .probe-status-val.loaded {
+            color: var(--accent-green);
+            font-weight: bold;
+        }
+
+        /* INTEGRATED ACTION & RESULTS CONTROLS */
+        .tech-card-body {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            justify-content: flex-end;
+        }
+
+        .controls-row {
+            display: flex;
+            gap: 15px;
+            margin-top: auto;
+        }
+
+        .btn {
+            height: 50px;
+            flex: 1;
+            padding: 0 20px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            transition: all 0.2s ease;
+            border-radius: 2px;
+        }
+
+        .btn-primary {
+            background-color: var(--border-color);
+            color: var(--card-bg);
+            border: 2px solid var(--border-color);
+        }
+
+        .btn-primary:hover {
+            background-color: var(--text-muted);
+            border-color: var(--text-muted);
+        }
+
+        .btn-secondary {
+            background-color: var(--card-bg);
+            color: var(--border-color);
+            border: 2px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background-color: var(--border-color);
+            color: var(--card-bg);
+        }
+
+        .btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+            background-color: #cccccc;
+            border-color: #cccccc;
+            color: #666666;
+        }
+
+        .btn svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 2;
+        }
+
+        /* INTEGRATED UPLOAD PREVIEW (COMPACT, LOCKED HEIGHT) */
+        .upload-preview-zone {
+            border: 2px dashed var(--border-color);
+            padding: 10px;
+            text-align: center;
+            font-size: 11px;
+            background-color: rgba(255, 255, 255, 0.03);
+            position: relative;
+            display: none;
+            margin-bottom: 15px;
+            height: 110px; /* Locked height */
+            overflow: hidden;
+        }
+
+        .upload-preview-zone.active {
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .preview-media-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            margin-top: 2px;
+        }
+
+        .preview-media {
+            max-height: 70px;
+            max-width: 100%;
+            object-fit: contain;
+            border: 1px solid var(--text-muted);
+        }
+
+        .file-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: bold;
+            font-size: 9.5px;
+        }
+
+        .remove-file-btn {
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            color: var(--accent-red);
+            font-size: 9.5px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        /* INTEGRATED RESULTS PANEL (FITS EXACTLY INSIDE CARD) */
+        .integrated-results {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+        }
+
+        .integrated-results.active {
+            display: flex;
+        }
+
+        .results-header-mini {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-bottom: 10px;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 1px;
+            text-align: right;
+        }
+
+        .match-alert {
+            padding: 10px;
+            border: 2px solid var(--border-color);
+            margin-bottom: 15px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .match-alert.match {
+            background-color: var(--accent-green-dim);
+            border-color: var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .match-alert.no-match {
+            background-color: var(--accent-red-dim);
+            border-color: var(--accent-red);
+            color: var(--accent-red);
+        }
+
+        .result-details {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 11px;
+            margin-bottom: 20px;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed var(--text-muted);
+            padding-bottom: 4px;
+            opacity: 0.85;
+        }
+
+        .result-row span:first-child {
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .result-row span:last-child {
+            font-weight: bold;
+        }
+
+        /* WATCHLIST ENROLLMENT INTEGRATED STATE */
+        .enroll-success-panel {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .enroll-success-panel.active {
+            display: flex;
+        }
+
+        /* WATCHLIST LOGS GRID (SCROLL LOCK) */
+        /* WATCHLIST LOGS MASTER-DETAIL VIEW */
+        .logs-search-bar {
+            display: flex;
+            gap: 15px;
+            flex-shrink: 0;
+        }
+
+        .logs-table-wrapper {
+            border: 2px solid var(--border-color);
+            background-color: var(--card-bg);
+            flex: 1;
+            overflow-y: auto;
+            transition: border-color 0.3s ease, background-color 0.3s ease;
+        }
+
+        /* Style the logs list scrollbar */
+        .logs-table-wrapper::-webkit-scrollbar {
+            width: 6px;
+        }
+        .logs-table-wrapper::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .logs-table-wrapper::-webkit-scrollbar-thumb {
+            background-color: rgba(0, 0, 0, 0.2);
+        }
+        body.dark-theme .logs-table-wrapper::-webkit-scrollbar-thumb {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .log-item {
+            padding: 14px 18px;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: left;
+        }
+        body.dark-theme .log-item {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .log-item:hover {
+            background-color: rgba(0, 0, 0, 0.03);
+        }
+        body.dark-theme .log-item:hover {
+            background-color: rgba(255, 255, 255, 0.03);
+        }
+
+        .log-item.active {
+            background-color: var(--border-color) !important;
+            color: var(--card-bg) !important;
+        }
+        
+        .log-item.active .log-item-meta {
+            color: var(--card-bg) !important;
+            opacity: 0.8;
+        }
+
+        .log-item-name {
+            font-weight: bold;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .log-item-meta {
+            font-size: 10px;
+            color: var(--text-muted);
+            font-family: monospace;
+            transition: color 0.3s ease;
+        }
+
+        /* INPUTS & GROUPS CONSISTENT STYLING */
+        .input-group {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .input-group label {
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        .text-input {
+            width: 100%;
+            height: 42px;
+            padding: 0 14px;
+            border: 2px solid var(--border-color);
+            font-size: 13px;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            border-radius: 2px;
+            outline: none;
+            transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+        }
+
+        .text-input:focus {
+            background-color: rgba(255,255,255,0.03);
+        }
+
+        /* SCANNERS & SPINNERS */
+        .scan-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--card-bg);
+            opacity: 0.95;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 15px;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+        }
+
+        .scan-overlay.active {
+            opacity: 0.96;
+            pointer-events: auto;
+        }
+
+        .radar-spinner {
+            width: 70px;
+            height: 70px;
+            border: 2px solid var(--text-muted);
+            border-radius: 50%;
+            position: relative;
+            border-top-color: var(--border-color);
+            animation: spin 1s linear infinite;
+        }
+
+        /* FOOTER */
+        footer {
+            margin-top: auto;
+            border-top: 2px solid var(--border-color);
+            padding: 15px 40px;
+            background-color: var(--card-bg);
+            display: flex;
+            justify-content: space-between;
+            font-size: 9.5px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 700;
+            z-index: 10;
+            flex-shrink: 0;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .footer-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .footer-links span {
+            cursor: pointer;
+        }
+
+        .footer-links span:hover {
+            color: var(--text-color);
+        }
+
+        /* TAB SWAPPING UTILITIES */
+        .tab-content {
+            display: none;
+            width: 100%;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tab-content.active {
+            display: flex;
+        }
+
+        /* ANIMATIONS */
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 0.8; }
+            50% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 12px var(--accent-green); }
+            100% { transform: scale(1); opacity: 0.8; }
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes slowRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @keyframes slowRotateReverse {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(-360deg); }
+        }
+
+        /* LOGO LOADING OVERLAY STYLES */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--card-bg);
+            color: var(--text-color);
+            font-family: var(--font-mono);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.6s cubic-bezier(0.25, 1, 0.5, 1), visibility 0.6s;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        #loading-overlay.fade-out {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
+        #loading-overlay .matrix-container {
+            display: flex;
+            gap: 32px; 
+            transition: gap 0.7s cubic-bezier(0.25, 1, 0.5, 1);
+            align-items: center;
+        }
+
+        #loading-overlay .matrix-container.compressed {
+            gap: 12px; 
+        }
+
+        #loading-overlay .column {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            height: 288px; 
+            width: 28px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #loading-overlay .bits-wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            justify-content: center;
+        }
+
+        #loading-overlay .bit {
+            font-size: var(--font-size, 30px);
+            opacity: var(--initial-opacity, 1);
+            font-weight: 400;
+            height: 36px;
+            line-height: 36px;
+            text-align: center;
+            transition: transform var(--duration) cubic-bezier(0.4, 0, 0.2, 1), 
+                        opacity var(--duration) cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #loading-overlay .letter {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.3); 
+            font-size: 54px;
+            font-weight: 700;
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), 
+                        opacity 0.25s ease;
+        }
+
+        #loading-overlay .column.bits-collapsed .bit {
+            transform: translateY(var(--to-center));
+            opacity: 0;
+        }
+
+        #loading-overlay .column.letter-visible .letter {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(var(--letter-scale, 1));
+        }
+
+        #loading-overlay .matrix-container.compressed .column.letter-visible .letter {
+            transform: translate(-50%, -50%) scale(1);
+        }
+    </style>
+</head>
+<body>
+    <script>
+        // Apply theme instantly to prevent light-theme flash during loading
+        if (localStorage.getItem('theme') === 'dark') {
+            document.body.classList.add('dark-theme');
+        }
+    </script>
+
+    <!-- LOGO LOADING OVERLAY -->
+    <div id="loading-overlay">
+        <div class="matrix-container" id="loading-matrix"></div>
+    </div>
+
+    <!-- INTERACTIVE BACKGROUND CANVAS -->
+    <canvas id="bg-canvas"></canvas>
+
+    <!-- HEADER -->
+    <header>
+        <div class="logo">Biomatrix</div>
+        <nav>
+            <button class="nav-tab active" onclick="switchTab('verify')">Verify</button>
+            <button class="nav-tab" onclick="switchTab('identity')">Identity</button>
+            <button class="nav-tab" onclick="switchTab('logs')">Logs</button>
+        </nav>
+        <div class="header-status">
+            <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                <svg id="themeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
+
+    <!-- WORKFLOW TIMELINE -->
+    <div class="timeline-container">
+        <div class="timeline">
+            <div class="timeline-progress-bar" id="timelineProgress"></div>
+            <div class="step completed" id="stepInitiation">
+                <div class="step-circle"></div>
+                <div class="step-label">Initiation</div>
+            </div>
+            <div class="step active" id="stepUpload">
+                <div class="step-circle"></div>
+                <div class="step-label">Data_Upload</div>
+            </div>
+            <div class="step" id="stepAnalysis">
+                <div class="step-circle"></div>
+                <div class="step-label">Neural_Analysis</div>
+            </div>
+            <div class="step" id="stepIdentification">
+                <div class="step-circle"></div>
+                <div class="step-label">Identification</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MAIN VIEWPORTS (ADAPTIVE LOCK HEIGHT, SPACIOUS DIVISIONS) -->
+    <main>
+        
+        <!-- TAB 1: VERIFY (FORENSIC SEARCH) -->
+        <div class="tab-content active" id="tab-verify">
+            <!-- Left Side: Symmetrical Neural Wheel Floating on Dot Grid (No borders/background) -->
+            <div class="left-column">
+                <div class="wheel-container">
+                    <svg class="svg-wheel" viewBox="0 0 480 480" id="svgWheel">
+                        <!-- concentric dot rings -->
+                        <circle cx="240" cy="240" r="200" fill="none" stroke-width="1.5" stroke-dasharray="2 6" class="rotating-ring"></circle>
+                        <circle cx="240" cy="240" r="160" fill="none" stroke-width="1.5" stroke-dasharray="6 6" class="rotating-ring-reverse"></circle>
+                        <circle cx="240" cy="240" r="120" fill="none" stroke-width="1" stroke-dasharray="1 3"></circle>
+                        <circle cx="240" cy="240" r="100" fill="none" stroke-width="1"></circle>
+                        
+                        <!-- connecting ticks and lines -->
+                        <line x1="240" y1="0" x2="240" y2="480" stroke-width="1" stroke-dasharray="2 4"></line>
+                        <line x1="0" y1="240" x2="480" y2="240" stroke-width="1" stroke-dasharray="2 4"></line>
+                    </svg>
+
+                    <!-- Clickable Nodes on the Wheel (Exactly Symmetrical Triangle, 240px center) -->
+                    <div class="wheel-node node-0" id="node-GAIT" onclick="selectModality('GAIT')" title="Gait Dynamics">
+                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M15 4.5C15 5.88071 13.8807 7 12.5 7S10 5.88071 10 4.5 11.1193 2 12.5 2 15 3.11929 15 4.5Z" fill="currentColor"></path>
+                            <path fill-rule="evenodd" clip-rule="evenodd" d="M10.9292 9.2672c0.1998 -0.01083 0.3925 -0.0172 0.5708 -0.0172 0.5541 0 1.1539 0.06158 1.6938 0.13913 1.5216 0.21853 2.6736 1.34137 3.134 2.72257 0.1043 0.3128 0.4206 0.5032 0.7459 0.449l1.803 -0.3005c0.4086 -0.0681 0.795 0.2079 0.8631 0.6165 0.0681 0.4086 -0.2079 0.795 -0.6165 0.8631l-1.803 0.3005c-1.0534 0.1756 -2.0778 -0.4413 -2.4155 -1.4543 -0.3073 -0.9218 -1.0428 -1.5855 -1.9242 -1.7121 -0.2677 -0.0385 -0.5402 -0.071 -0.8049 -0.093l-0.2712 2.7114c-0.0839 0.8397 -0.0937 1.0614 -0.037 1.2595 0.0566 0.198 0.1822 0.381 0.6977 1.0491l4.429 5.741c0.2531 0.3279 0.1923 0.7989 -0.1357 1.0519 -0.3279 0.253 -0.7989 0.1923 -1.0519 -0.1357l-4.4291 -5.7409c-0.0239 -0.031 -0.0475 -0.0616 -0.0709 -0.0918 -0.4106 -0.5313 -0.7355 -0.9516 -0.8813 -1.4609 -0.1457 -0.5094 -0.0924 -1.038 -0.0249 -1.706 0.0038 -0.038 0.0077 -0.0765 0.0116 -0.1154l0.2541 -2.5408c-1.67336 0.2737 -2.91607 1.8468 -2.91607 3.6977 0 0.4142 -0.33579 0.75 -0.75 0.75 -0.41422 0 -0.75 -0.3358 -0.75 -0.75 0 -2.6407 1.9138 -5.08293 4.67917 -5.2328Zm-0.7821 7.4974c0.4062 0.0812 0.6696 0.4763 0.5884 0.8825 -0.3576 1.7878 -1.3341 3.3923 -2.75778 4.5312l-0.50917 0.4074c-0.32345 0.2587 -0.79542 0.2063 -1.05417 -0.1172 -0.25876 -0.3234 -0.20632 -0.7954 0.11713 -1.0542l0.50916 -0.4073c1.1481 -0.9185 1.93558 -2.2124 2.22392 -3.6541 0.08124 -0.4062 0.47635 -0.6696 0.88251 -0.5883Z" fill="currentColor"></path>
+                        </svg>
+                    </div>
+                    <div class="wheel-node node-1" id="node-VOICE" onclick="selectModality('VOICE')" title="Acoustic Voice">
+                        <svg viewBox="-0.5 -0.5 16 16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" class="feather feather-mic">
+                            <path d="M7.5 0.625a1.875 1.875 0 0 0 -1.875 1.875v5a1.875 1.875 0 0 0 3.75 0V2.5a1.875 1.875 0 0 0 -1.875 -1.875z" stroke-width="1.2"></path>
+                            <path d="M11.875 6.25v1.25a4.375 4.375 0 0 1 -8.75 0v-1.25" stroke-width="1.2"></path>
+                            <path d="m7.5 11.875 0 2.5" stroke-width="1.2"></path>
+                            <path d="m5 14.375 5 0" stroke-width="1.2"></path>
+                        </svg>
+                    </div>
+                    <div class="wheel-node active node-2" id="node-FACE" onclick="selectModality('FACE')" title="Face Recognition">
+                        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAADGklEQVR4Ae3BT4hUdQAA4G/e/pAtJnjkBB62P4fCFTcYIRByDxNZKIV6qIOXKFLaaKGki566BHaoQ5iwoWSHoIMeFIsWM9rDIkpBG4yw9gcqplhL5RVz2MMjWhhh+TmxM2+bZAb2+0piKSawG6NItbuGQziut/bhMCraZZjHGUwhc1PJshpOoqI7D6OuN6r4Rnca2ItZSxItNXyOiu5V9c6Y7o3gS4xbkiDFSQTda2JG78ygqXsBHyMNmEBFuwyXkYs18RYaeqeBnTiIsljAZqRiI5go4SK2ir2PSeT6Q8B7eEnsUoKNYhkmkesfOSaRiW1MkIpdRq7/5Lgsliba5fpX7haJAZcYcIkBF3Ad6y1r6izFCWzHHPZjXjGjOIYqzuMFZFbWFLs6hBvYpaWJl/GLlb2N57AO92ELPlDMaYxjHUZxB6at7Dc8g3VaDgQcx0VUMYOGzsbEtipum1hVZzPYhBrmUA9a6qhbveD2aeAjNyUGXGLAJQZcYsAlBlyiN3LF5XogsTp1sUuKuyQ2ZxWGrM4FbMK9+Ar7cE0xF7AF6/EZXsOiNWvW3BZlVBH8dwFVlK1CSXHbcRIpFvAuppApJsUEXsUGZHgW5xVQUtz3eFBsEdM4g68xj1wsYBSPYDd2YFjsBzykgKC4inbD2IM9WhaxgEUtw9iAYSurKGhIcffgUSsLSFFBBSmCzo7inAKGtIzhSdzAX1Z2DtexEXfrjR/xBt7U2Qh24W/8XsI+HNPSxE7M6ixgD57H4xhWzCK+wIc4jVxnNZxFWcv+Ev5AxbJP8bRiytiBKqoYRcD9Wn5GjnnMYQ7TaCrmEzxl2UJARaysuCZO4ZT/V1lsQ2LAJQZcYsAl2gX9K7hFgkxsM4L+E7BZLEtwRSzFEQT9I+AIUrErJRzEYe0y1JGLNfEOZvRWDa+jLBYwhlS7QwFTeAUjYinG/bsaNqGhNx7AWZR1r4GpBBn2Ite9Mmp6Zxxl3cuxF1miZRZPoKF7c3qnrnsNPIZZS4Ys+wkn8CfuQhnD2l3FAUzrnQX8im24U7sM3+IoXsR3bvoHWQKvvyfQBVQAAAAASUVORK5CYII=" x="0" y="0" height="48" width="48" />
+                        </svg>
+                    </div>
+
+                    <!-- Central Button displaying current active icon -->
+                    <div class="wheel-center-button" onclick="rotateWheelNext()">
+                        <div class="wheel-center-icon" id="centerIcon"></div>
+                    </div>
+                </div>
+                <div class="wheel-instruction">Click the dial nodes or center to toggle target sensor data</div>
+            </div>
+
+            <!-- Right Side: Symmetrical Wider Media Upload Card positioned further right -->
+            <div class="right-column">
+                <div class="tech-card" id="searchCard">
+                    <!-- Integrated scan loader overlay -->
+                    <div class="scan-overlay" id="scanOverlay">
+                        <div class="radar-spinner"></div>
+                        <div style="font-weight: bold; letter-spacing: 2px; text-transform: uppercase; font-size: 11px;">Scanning Watchlist...</div>
+                    </div>
+
+                    <!-- Default / Interactive content -->
+                    <div id="searchActiveContent" style="display: flex; flex-direction: column; flex: 1;">
+                        <div class="active-mode-indicator">
+                            <span class="indicator-square"></span> Active_Mode
+                        </div>
+                        <div class="panel-title" id="modeTitle">Face Scan</div>
+                        <div class="panel-description" id="modeDesc">Loading system specifications...</div>
+                        
+                        <div class="tag-row" id="modeTags">
+                            <!-- tags will be injected -->
+                        </div>
+
+                        <!-- Integrated Probes Upload Status List -->
+                        <div class="probes-status-container">
+                            <div class="probe-status-item" id="status-FACE">
+                                <span>Face Sensor</span>
+                                <span class="probe-status-val" id="statusVal-FACE">Empty</span>
+                            </div>
+                            <div class="probe-status-item" id="status-VOICE">
+                                <span>Voice Sensor</span>
+                                <span class="probe-status-val" id="statusVal-VOICE">Empty</span>
+                            </div>
+                            <div class="probe-status-item" id="status-GAIT">
+                                <span>Gait Sensor</span>
+                                <span class="probe-status-val" id="statusVal-GAIT">Empty</span>
+                            </div>
+                        </div>
+
+                        <!-- Integrated Upload File Preview Panel -->
+                        <div class="upload-preview-zone" id="searchPreviewZone">
+                            <div class="file-info">
+                                <span id="searchFileName">probe.jpg</span>
+                                <button class="remove-file-btn" onclick="clearSelectedFile('search')">Remove</button>
+                            </div>
+                            <div class="preview-media-container" id="searchMediaContainer"></div>
+                        </div>
+
+                        <div class="controls-row">
+                            <input type="file" id="searchFileInput" style="display: none;" onchange="handleFileSelected(this, 'search')">
+                            <button class="btn btn-secondary" onclick="triggerFileInput('searchFileInput')">
+                                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                                Upload Media
+                            </button>
+                            <button class="btn btn-primary" id="startScanBtn" onclick="initiateDatabaseScan()" disabled>
+                                <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                                Start Scan
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Integrated Results Content (replaces standard content upon scan completion, avoiding scrollbars) -->
+                    <div class="integrated-results" id="integratedResults">
+                        <div class="active-mode-indicator">
+                            <span class="indicator-square"></span> Scan_Finished
+                        </div>
+                        <div class="panel-title" style="margin-bottom: 5px;">Scan Results</div>
+                        <div class="results-header-mini" id="resultScannedCount">Scanned 0 records</div>
+
+                        <div class="match-alert" id="matchAlert">No Match</div>
+                        
+                        <div class="result-details">
+                            <div class="result-row">
+                                <span>Candidate Identity</span>
+                                <span id="resultPersonName">-</span>
+                            </div>
+                            <div class="result-row">
+                                <span>UUID Reference</span>
+                                <span id="resultUUID" style="font-family: monospace;">-</span>
+                            </div>
+                            <div class="result-row">
+                                <span>Combined Score</span>
+                                <span id="resultScore">-</span>
+                            </div>
+                            <div class="result-row">
+                                <span>Face Confidence</span>
+                                <span id="resDetail-FACE">-</span>
+                            </div>
+                            <div class="result-row">
+                                <span>Voice Confidence</span>
+                                <span id="resDetail-VOICE">-</span>
+                            </div>
+                            <div class="result-row">
+                                <span>Gait Confidence</span>
+                                <span id="resDetail-GAIT">-</span>
+                            </div>
+                        </div>
+
+                        <div class="controls-row">
+                            <button class="btn btn-primary" onclick="resetSearchState()">
+                                <svg viewBox="0 0 24 24"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                                New Search Scan
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: IDENTITY (ENROLLMENT) -->
+        <div class="tab-content" id="tab-identity">
+            <!-- Left Side: Styled Guidelines Card -->
+            <div class="left-column">
+                <div class="tech-card" style="width: 480px; height: 520px; justify-content: center; align-items: center; text-align: center;">
+                    <div style="max-width: 340px; display: flex; flex-direction: column; align-items: center;">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 25px; color: var(--text-color);">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <h3 style="text-transform: uppercase; letter-spacing: 2px; margin-bottom: 20px; font-family: var(--font-display); font-size: 18px;">Watchlist Registry</h3>
+                        <p style="font-size: 13px; color: var(--text-muted); line-height: 1.6; margin-bottom: 30px;">
+                            Securely register a subject's biometric profile into the central directory mapping. All baseline templates are vectorized and encrypted immediately.
+                        </p>
+                        <div style="font-size: 10px; font-weight: bold; border: 2px solid var(--border-color); padding: 12px 20px; text-transform: uppercase; background-color: var(--bg-color); letter-spacing: 1px; display: flex; align-items: center; justify-content: center; gap: 8px; transition: background-color 0.3s ease, border-color 0.3s ease;">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                            </svg>
+                            SHA-256 Vectorization Active
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!-- Right Column: Symmetrical Larger Enrollment Card positioned further right -->
+            <div class="right-column">
+                <div class="tech-card" id="enrollCard">
+                    <!-- Registration loader -->
+                    <div class="scan-overlay" id="enrollOverlay">
+                        <div class="radar-spinner"></div>
+                        <div style="font-weight: bold; letter-spacing: 2px; text-transform: uppercase; font-size: 11px;">Registering Profile...</div>
+                    </div>
+
+                    <!-- Enrollment Input Form -->
+                    <div id="enrollFormContent" style="display: flex; flex-direction: column; flex: 1;">
+                        <div class="active-mode-indicator">
+                            <span class="indicator-square"></span> Watchlist_Entry
+                        </div>
+                        <div class="panel-title" style="margin-bottom: 10px;">Add Identity</div>
+
+                        <div class="input-group">
+                            <label for="enrollName">Subject Full Name</label>
+                            <input type="text" class="text-input" id="enrollName" placeholder="e.g., John Doe">
+                        </div>
+
+                        <div class="input-group">
+                            <label for="enrollID">Subject National ID</label>
+                            <input type="text" class="text-input" id="enrollID" placeholder="e.g., 123456789">
+                        </div>
+
+                        <div class="input-group">
+                            <label>Target Biometric Modality</label>
+                            <select class="text-input" id="enrollModality" style="cursor: pointer; height: 42px; padding: 0 10px;">
+                                <option value="FACE">Face Recognition (ArcFace)</option>
+                                <option value="VOICE">Acoustic Voice (WavLM-SV)</option>
+                                <option value="GAIT">Gait Dynamics (MediaPipe)</option>
+                            </select>
+                        </div>
+
+                        <!-- Compact file preview panel -->
+                        <div class="upload-preview-zone" id="enrollPreviewZone" style="height: 70px; padding: 8px; margin-bottom: 10px;">
+                            <div class="file-info" style="font-size: 9px;">
+                                <span id="enrollFileName">baseline.jpg</span>
+                                <button class="remove-file-btn" onclick="clearSelectedFile('enroll')">Remove</button>
+                            </div>
+                        </div>
+
+                        <div class="controls-row">
+                            <input type="file" id="enrollFileInput" style="display: none;" onchange="handleFileSelected(this, 'enroll')">
+                            <button class="btn btn-secondary" onclick="triggerFileInput('enrollFileInput')">
+                                <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                                Upload Baseline
+                            </button>
+                            <button class="btn btn-primary" id="enrollBtn" onclick="submitWatchlistEnrollment()" disabled>
+                                Enroll Profile
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Integrated Enrollment Success (replaces inputs upon completion) -->
+                    <div class="enroll-success-panel" id="enrollSuccessPanel">
+                        <div class="active-mode-indicator">
+                            <span class="indicator-square"></span> Enrollment_Success
+                        </div>
+                        <div class="panel-title" style="color: var(--accent-green);">Registered</div>
+                        
+                        <div class="result-details" style="margin-top: 15px; margin-bottom: 25px;">
+                            <div class="result-row">
+                                <span>Subject Registered</span>
+                                <span id="enrolledNameVal">-</span>
+                            </div>
+                            <div class="result-row">
+                                <span>National Identification</span>
+                                <span id="enrolledIDVal">-</span>
+                            </div>
+                            <div class="result-row">
+                                <span>Database UUID Reference</span>
+                                <span id="enrolledUUIDVal" style="font-family: monospace;">-</span>
+                            </div>
+                            <div class="result-row">
+                                <span>Registry Status</span>
+                                <span id="enrolledStatusVal" style="color: var(--accent-green);">SAVED</span>
+                            </div>
+                        </div>
+
+                        <div class="controls-row">
+                            <button class="btn btn-primary" onclick="resetEnrollmentState()">
+                                <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+                                Enroll Another Profile
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 3: LOGS (SCROLL CONTAINER LOCKED HEIGHT) -->
+        <div class="tab-content" id="tab-logs">
+            <!-- Left Column: Profiles List Card -->
+            <div class="left-column">
+                <div class="tech-card" style="width: 480px; height: 520px; display: flex; flex-direction: column;">
+                    <div class="active-mode-indicator">
+                        <span class="indicator-square"></span> Watchlist_Directory
+                    </div>
+                    <div class="panel-title" style="margin-bottom: 10px;">Subject List</div>
+                    <div class="logs-search-bar" style="margin-bottom: 15px;">
+                        <input type="text" class="text-input" id="logsSearch" placeholder="Search name or ID..." onkeyup="filterLogs()">
+                        <button class="btn btn-primary" style="flex: 0 0 42px; height: 42px; padding: 0; display: flex; align-items: center; justify-content: center;" onclick="fetchWatchlistLogs()" title="Refresh Logs">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path></svg>
+                        </button>
+                    </div>
+                    <div class="logs-table-wrapper" style="border: 2px solid var(--border-color); flex: 1; overflow-y: auto; box-shadow: none;">
+                        <div id="logsList">
+                            <div class="logs-empty" style="padding: 20px; text-align: center; color: var(--text-muted);">Loading watchlist database...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Profile Inspector Details Card -->
+            <div class="right-column">
+                <div class="tech-card" id="logsDetailCard" style="width: 580px; height: 520px; display: flex; flex-direction: column;">
+                    <div class="active-mode-indicator">
+                        <span class="indicator-square"></span> Profile_Inspector
+                    </div>
+                    <div class="panel-title" style="margin-bottom: 20px;">Identity Details</div>
+
+                    <!-- Placeholder empty state -->
+                    <div id="logsDetailsPlaceholder" style="display: flex; flex-direction: column; align-items: center; justify-content: center; flex: 1; text-align: center; color: var(--text-muted);">
+                        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 20px; opacity: 0.5;">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                        <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; font-weight: bold; color: var(--text-color);">No Profile Selected</div>
+                        <div style="font-size: 10px; margin-top: 8px; max-width: 340px; line-height: 1.5;">Select a subject from the directory list on the left to inspect their registered biometric templates.</div>
+                    </div>
+
+                    <!-- Selected Profile Details Panel -->
+                    <div id="logsDetailsContent" style="display: none; flex-direction: column; flex: 1;">
+                        <div class="result-details" style="margin-top: 5px; flex: 1; display: flex; flex-direction: column; gap: 20px;">
+                            <div class="result-row" style="padding-bottom: 12px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Full Name</span>
+                                <span id="detailFullName" style="font-weight: bold; font-size: 15px; color: var(--text-color);">-</span>
+                            </div>
+                            <div class="result-row" style="padding-bottom: 12px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">National ID</span>
+                                <span id="detailNationalID" style="font-size: 13px; font-family: monospace; color: var(--text-color);">-</span>
+                            </div>
+                            <div class="result-row" style="padding-bottom: 12px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Database UUID</span>
+                                <span id="detailUUID" style="font-family: monospace; font-size: 12px; color: var(--text-muted);">-</span>
+                            </div>
+                            <div class="result-row" style="padding-bottom: 12px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Enrolled Templates</span>
+                                <span id="detailModality" style="font-weight: bold; color: var(--accent-green); font-size: 13px;">-</span>
+                            </div>
+                            <div class="result-row" style="padding-bottom: 12px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Registry Status</span>
+                                <span style="font-weight: bold; color: var(--accent-green); display: flex; align-items: center; gap: 6px; font-size: 12px;">
+                                    <span class="status-dot" style="margin: 0; width: 6px; height: 6px;"></span> Active Watchlist Profile
+                                </span>
+                            </div>
+                            <div class="result-row" style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: var(--text-muted); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">Vector Security</span>
+                                <span style="font-family: monospace; font-size: 11px; color: var(--text-muted);">AES-256 GCM / SHA-256 Encryption</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- FOOTER -->
+    <footer>
+        <div>© 2026 BIOMATRIX CORE. ALL RIGHTS RESERVED.</div>
+        <div id="mouseCoords">X_COORD: 000.00 / Y_COORD: 000.00</div>
+        <div class="footer-links">
+            <span>Legal</span>
+            <span>Privacy</span>
+            <span>Encryption</span>
+            <span>Protocol</span>
+        </div>
+    </footer>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        // LOGO LOADING SCREEN LOGIC
+        let pageLoaded = false;
+        let animationFinished = false;
+        
+        function checkAndHideLoadingScreen() {
+            if (pageLoaded && animationFinished) {
+                const overlay = document.getElementById('loading-overlay');
+                if (overlay) {
+                    overlay.classList.add('fade-out');
+                    // Completely remove from DOM after fade-out transition to optimize rendering
+                    setTimeout(() => {
+                        overlay.remove();
+                    }, 600);
+                }
+            }
+        }
+
+        // Initialize and run the loading animation
+        function initLoadingAnimation() {
+            const word = "Biomatrix"; 
+            const container = document.getElementById('loading-matrix');
+            if (!container) return;
+            
+            const rowsCount = 8;
+            const bitHeight = 36;
+            const matrixCenterY = (rowsCount * bitHeight) / 2; 
+
+            const maxColIdx = word.length - 1; 
+            const maxRowIdx = rowsCount - 1;    
+
+            word.split('').forEach((char, colIdx) => {
+                const column = document.createElement('div');
+                column.className = 'column';
+
+                const bitsWrapper = document.createElement('div');
+                bitsWrapper.className = 'bits-wrapper';
+
+                const binaryStr = char.charCodeAt(0).toString(2).padStart(8, '0');
+                const normX = (colIdx - (maxColIdx / 2)) / (maxColIdx / 2);
+
+                binaryStr.split('').forEach((bitVal, rowIdx) => {
+                    const bit = document.createElement('div');
+                    bit.className = 'bit';
+                    bit.innerText = bitVal;
+
+                    const bitCenter = (rowIdx * bitHeight) + (bitHeight / 2);
+                    const distanceToCenter = matrixCenterY - bitCenter;
+                    
+                    const normY = (rowIdx - (maxRowIdx / 2)) / (maxRowIdx / 2);
+                    const radialDist = Math.sqrt(normX * normX + normY * normY); 
+                    
+                    const sizeFactor = Math.max(0.35, 1 - radialDist * 0.55);
+                    const dynamicSize = 32 * sizeFactor;
+                    
+                    const dynamicOpacity = Math.max(0.35, 1 - radialDist * 0.35);
+                    const duration = 0.20 + (Math.abs(distanceToCenter) / matrixCenterY) * 0.25;
+                    
+                    bit.style.setProperty('--to-center', `${distanceToCenter}px`);
+                    bit.style.setProperty('--duration', `${duration}s`);
+                    bit.style.setProperty('--font-size', `${dynamicSize}px`);
+                    bit.style.setProperty('--initial-opacity', `${dynamicOpacity}`);
+                    bitsWrapper.appendChild(bit);
+                });
+
+                const letter = document.createElement('div');
+                letter.className = 'letter';
+                letter.innerText = char;
+                letter.dataset.final = char; 
+
+                const letterScale = 1 - Math.abs(normX) * 0.40;
+                letter.style.setProperty('--letter-scale', letterScale);
+
+                column.appendChild(bitsWrapper);
+                column.appendChild(letter);
+                container.appendChild(column);
+            });
+
+            const columns = container.querySelectorAll('.column');
+
+            function scrambleLetter(element, finalChar, duration, callback) {
+                const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*+=?";
+                const intervalTime = 35; 
+                const steps = duration / intervalTime;
+                let currentStep = 0;
+
+                const interval = setInterval(() => {
+                    if (currentStep >= steps) {
+                        clearInterval(interval);
+                        element.innerText = finalChar; 
+                        if (callback) callback();
+                    } else {
+                        element.innerText = chars[Math.floor(Math.random() * chars.length)];
+                        currentStep++;
+                    }
+                }, intervalTime);
+            }
+
+            function shuffle(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+
+            const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+            async function animate() {
+                const colCount = columns.length;
+                let collapseOrder = Array.from({length: colCount}, (_, i) => i);
+                shuffle(collapseOrder);
+                
+                // 1. Collapse Phase (Matrix -> Word)
+                for (let i = 0; i < colCount; i++) {
+                    const colIdx = collapseOrder[i];
+                    const colElement = columns[colIdx];
+                    const letterEl = colElement.querySelector('.letter');
+                    
+                    colElement.classList.add('bits-collapsed');
+                    
+                    setTimeout(() => {
+                        colElement.classList.add('letter-visible');
+                        scrambleLetter(letterEl, letterEl.dataset.final, 300);
+                    }, 150);
+                    
+                    await sleep(100);
+                }
+                
+                // 2. Compress Phase
+                await sleep(400);
+                container.classList.add('compressed');
+                
+                // 3. Settle and finish
+                await sleep(800);
+                
+                animationFinished = true;
+                checkAndHideLoadingScreen();
+            }
+            
+            animate();
+        }
+        
+        // Start loading animation immediately as soon as scripts parse!
+        document.addEventListener('DOMContentLoaded', initLoadingAnimation);
+
+        // API Configuration
+        const FLASK_PORT = "{{FLASK_PORT}}";
+        const API_BASE = `http://localhost:${FLASK_PORT}/api`;
+
+        // Modality Definitions matching video and backend
+        const MODALITIES = {
+            'GAIT': {
+                title: 'Gait Analysis',
+                desc: 'Kinematic modeling of movement signatures and skeletal variations via long-distance visual sensors.',
+                tags: ['motion_sync', 'axis_decode', '98.2%_match'],
+                allowedExt: ['.mp4', '.mov', '.avi'],
+                icon: '<svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M15 4.5C15 5.88071 13.8807 7 12.5 7S10 5.88071 10 4.5 11.1193 2 12.5 2 15 3.11929 15 4.5Z" fill="currentColor"></path><path fill-rule="evenodd" clip-rule="evenodd" d="M10.9292 9.2672c0.1998 -0.01083 0.3925 -0.0172 0.5708 -0.0172 0.5541 0 1.1539 0.06158 1.6938 0.13913 1.5216 0.21853 2.6736 1.34137 3.134 2.72257 0.1043 0.3128 0.4206 0.5032 0.7459 0.449l1.803 -0.3005c0.4086 -0.0681 0.795 0.2079 0.8631 0.6165 0.0681 0.4086 -0.2079 0.795 -0.6165 0.8631l-1.803 0.3005c-1.0534 0.1756 -2.0778 -0.4413 -2.4155 -1.4543 -0.3073 -0.9218 -1.0428 -1.5855 -1.9242 -1.7121 -0.2677 -0.0385 -0.5402 -0.071 -0.8049 -0.093l-0.2712 2.7114c-0.0839 0.8397 -0.0937 1.0614 -0.037 1.2595 0.0566 0.198 0.1822 0.381 0.6977 1.0491l4.429 5.741c0.2531 0.3279 0.1923 0.7989 -0.1357 1.0519 -0.3279 0.253 -0.7989 0.1923 -1.0519 -0.1357l-4.4291 -5.7409c-0.0239 -0.031 -0.0475 -0.0616 -0.0709 -0.0918 -0.4106 -0.5313 -0.7355 -0.9516 -0.8813 -1.4609 -0.1457 -0.5094 -0.0924 -1.038 -0.0249 -1.706 0.0038 -0.038 0.0077 -0.0765 0.0116 -0.1154l0.2541 -2.5408c-1.67336 0.2737 -2.91607 1.8468 -2.91607 3.6977 0 0.4142 -0.33579 0.75 -0.75 0.75 -0.41422 0 -0.75 -0.3358 -0.75 -0.75 0 -2.6407 1.9138 -5.08293 4.67917 -5.2328Zm-0.7821 7.4974c0.4062 0.0812 0.6696 0.4763 0.5884 0.8825 -0.3576 1.7878 -1.3341 3.3923 -2.75778 4.5312l-0.50917 0.4074c-0.32345 0.2587 -0.79542 0.2063 -1.05417 -0.1172 -0.25876 -0.3234 -0.20632 -0.7954 0.11713 -1.0542l0.50916 -0.4073c1.1481 -0.9185 1.93558 -2.2124 2.22392 -3.6541 0.08124 -0.4062 0.47635 -0.6696 0.88251 -0.5883Z" fill="currentColor"></path></svg>',
+                backendKey: 'GAIT'
+            },
+            'VOICE': {
+                title: 'Voice ID',
+                desc: 'Spectrogram analysis of vocal frequencies and subconscious cadence patterns for non-intrusive authentication.',
+                tags: ['frequency_match', 'ssl_ready', 'phonetic_scan'],
+                allowedExt: ['.wav'],
+                icon: '<svg viewBox="-0.5 -0.5 16 16" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" class="feather feather-mic"><path d="M7.5 0.625a1.875 1.875 0 0 0 -1.875 1.875v5a1.875 1.875 0 0 0 3.75 0V2.5a1.875 1.875 0 0 0 -1.875 -1.875z" stroke-width="1.2"></path><path d="M11.875 6.25v1.25a4.375 4.375 0 0 1 -8.75 0v-1.25" stroke-width="1.2"></path><path d="m7.5 11.875 0 2.5" stroke-width="1.2"></path><path d="m5 14.375 5 0" stroke-width="1.2"></path></svg>',
+                backendKey: 'VOICE'
+            },
+            'FACE': {
+                title: 'Face Scan',
+                desc: 'Analyze facial geometry, structural heatmaps, and micro-expressions to verify identity with 99.9% accuracy.',
+                tags: ['identity_verified', 'encryption: aes-256', 'latency: 14ms'],
+                allowedExt: ['.jpg', '.jpeg', '.png'],
+                icon: '<svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg"><image href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADAAAAAwCAYAAABXAvmHAAADGklEQVR4Ae3BT4hUdQAA4G/e/pAtJnjkBB62P4fCFTcYIRByDxNZKIV6qIOXKFLaaKGki566BHaoQ5iwoWSHoIMeFIsWM9rDIkpBG4yw9gcqplhL5RVz2MMjWhhh+TmxM2+bZAb2+0piKSawG6NItbuGQziut/bhMCraZZjHGUwhc1PJshpOoqI7D6OuN6r4Rnca2ItZSxItNXyOiu5V9c6Y7o3gS4xbkiDFSQTda2JG78ygqXsBHyMNmEBFuwyXkYs18RYaeqeBnTiIsljAZqRiI5go4SK2ir2PSeT6Q8B7eEnsUoKNYhkmkesfOSaRiW1MkIpdRq7/5Lgsliba5fpX7haJAZcYcIkBF3Ad6y1r6izFCWzHHPZjXjGjOIYqzuMFZFbWFLs6hBvYpaWJl/GLlb2N57AO92ELPlDMaYxjHUZxB6at7Dc8g3VaDgQcx0VUMYOGzsbEtipum1hVZzPYhBrmUA9a6qhbveD2aeAjNyUGXGLAJQZcYsAlBlyiN3LF5XogsTp1sUuKuyQ2ZxWGrM4FbMK9+Ar7cE0xF7AF6/EZXsOiNWvW3BZlVBH8dwFVlK1CSXHbcRIpFvAuppApJsUEXsUGZHgW5xVQUtz3eFBsEdM4g68xj1wsYBSPYDd2YFjsBzykgKC4inbD2IM9WhaxgEUtw9iAYSurKGhIcffgUSsLSFFBBSmCzo7inAKGtIzhSdzAX1Z2DtexEXfrjR/xBt7U2Qh24W/8XsI+HNPSxE7M6ixgD57H4xhWzCK+wIc4jVxnNZxFWcv+Ev5AxbJP8bRiytiBKqoYRcD9Wn5GjnnMYQ7TaCrmEzxl2UJARaysuCZO4ZT/V1lsQ2LAJQZcYsAl2gX9K7hFgkxsM4L+E7BZLEtwRSzFEQT9I+AIUrErJRzEYe0y1JGLNfEOZvRWDa+jLBYwhlS7QwFTeAUjYinG/bsaNqGhNx7AWZR1r4GpBBn2Ite9Mmp6Zxxl3cuxF1miZRZPoKF7c3qnrnsNPIZZS4Ys+wkn8CfuQhnD2l3FAUzrnQX8im24U7sM3+IoXsR3bvoHWQKvvyfQBVQAAAAASUVORK5CYII=" x="0" y="0" height="48" width="48" /></svg>',
+                backendKey: 'FACE'
+            }
+        };
+
+        const MODALITY_ORDER = ['GAIT', 'VOICE', 'FACE'];
+        let activeModality = 'FACE';
+        
+        // Multi-Modality Search Files Store
+        let selectedFiles = {
+            search: {
+                'GAIT': null,
+                'VOICE': null,
+                'FACE': null
+            },
+            enroll: null
+        };
+
+        // Initialize App
+        window.onload = function() {
+            // Read saved theme
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-theme');
+                updateThemeIcon(true);
+            }
+            
+            selectModality('FACE');
+            trackMouseMovement();
+            initInteractiveBackground();
+            fetchWatchlistLogs();
+            switchTab('verify');
+            
+            // Mark page loaded and attempt to hide loading screen
+            pageLoaded = true;
+            checkAndHideLoadingScreen();
+        };
+
+        // INTERACTIVE CANVAS BACKGROUND (PROXIMITY ROTATING PLUS SIGNS)
+        function initInteractiveBackground() {
+            const canvas = document.getElementById('bg-canvas');
+            const ctx = canvas.getContext('2d');
+            
+            let dpr = window.devicePixelRatio || 1;
+            let width = window.innerWidth;
+            let height = window.innerHeight;
+            
+            function resize() {
+                dpr = window.devicePixelRatio || 1;
+                width = window.innerWidth;
+                height = window.innerHeight;
+                canvas.width = width * dpr;
+                canvas.height = height * dpr;
+                ctx.scale(dpr, dpr);
+            }
+            
+            window.addEventListener('resize', resize);
+            resize();
+            
+            let mouse = { x: -1000, y: -1000 };
+            let globalAngle = 0; // Global rotation angle
+            let lastMoveTime = Date.now(); // Timestamp of the last mouse movement
+            
+            document.addEventListener('mousemove', (e) => {
+                mouse.x = e.clientX;
+                mouse.y = e.clientY;
+                lastMoveTime = Date.now(); // Update movement timestamp
+            });
+            
+            document.addEventListener('mouseleave', () => {
+                mouse.x = -1000;
+                mouse.y = -1000;
+            });
+            
+            const spacing = 28;
+            const baseRadius = 3.5; // Clearly visible plus sign (7px wide/high)
+            const maxRadius = 7.5;  // Scales up to 15px near mouse
+            const activeRadius = 180;
+
+            let animatedPluses = []; // Array to track active plus animations
+            
+            function spawnPlusAnimation() {
+                const cols = Math.ceil(width / spacing) + 1;
+                const rows = Math.ceil(height / spacing) + 1;
+                
+                const c = Math.floor(Math.random() * cols);
+                const r = Math.floor(Math.random() * rows);
+                
+                const x = c * spacing;
+                const y = r * spacing;
+                
+                // Avoid spawning near the mouse
+                const dx = mouse.x - x;
+                const dy = mouse.y - y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+                
+                // Distance check: ensure new animation is not in close proximity to active ones
+                const minDist = 150; // Balanced pixel separation (prevents overlap, but allows many concurrent ones)
+                let tooClose = false;
+                for (let i = 0; i < animatedPluses.length; i++) {
+                    const ap = animatedPluses[i];
+                    const apX = ap.c * spacing;
+                    const apY = ap.r * spacing;
+                    const adx = x - apX;
+                    const ady = y - apY;
+                    if (Math.sqrt(adx * adx + ady * ady) < minDist) {
+                        tooClose = true;
+                        break;
+                    }
+                }
+                
+                if (dist > activeRadius && !tooClose && !animatedPluses.some(p => p.c === c && p.r === r)) {
+                    animatedPluses.push({
+                        c: c,
+                        r: r,
+                        startTime: Date.now(),
+                        duration: 2100 + Math.random() * 600, // 2.1 to 2.7 seconds (divisible by 5 phases)
+                        maxScale: 2.2 + Math.random() * 1.0    // grow by 2.2x to 3.2x
+                    });
+                }
+                
+                // Schedule next spawn much more frequently (80ms to 260ms) for high simultaneity
+                const nextSpawn = 80 + Math.random() * 180;
+                setTimeout(spawnPlusAnimation, nextSpawn);
+            }
+            
+            // Start the background animation spawn cycle
+            spawnPlusAnimation();
+            
+            function draw() {
+                ctx.clearRect(0, 0, width, height);
+                
+                const now = Date.now();
+                // Filter out completed animations
+                animatedPluses = animatedPluses.filter(p => now - p.startTime < p.duration);
+                
+                // Track mouse activity state
+                const timeSinceLastMove = Date.now() - lastMoveTime;
+                const isMoving = timeSinceLastMove < 40; // Responsive threshold (40ms) for instant stop
+                
+                if (isMoving) {
+                    globalAngle = (globalAngle + 0.045) % (Math.PI * 2); // Rotate and wrap around
+                }
+                
+                const isDark = document.body.classList.contains('dark-theme');
+                
+                // Batch draw static/idle plus signs to optimize CPU/GPU usage
+                ctx.strokeStyle = isDark ? 'rgba(255, 255, 255, 0.15)' : 'rgba(0, 0, 0, 0.14)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                
+                const cols = Math.ceil(width / spacing) + 1;
+                const rows = Math.ceil(height / spacing) + 1;
+                
+                const activeNodes = [];
+                const animatedNodesToDraw = [];
+                const influencedNodesToDraw = [];
+                
+                for (let c = 0; c < cols; c++) {
+                    for (let r = 0; r < rows; r++) {
+                        const x = c * spacing;
+                        const y = r * spacing;
+                        
+                        // 1. Mouse proximity interaction (has absolute PRIORITY over background animations and ripples)
+                        const dx = mouse.x - x;
+                        const dy = mouse.y - y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        if (dist < activeRadius) {
+                            activeNodes.push({ x, y, dx, dy, dist });
+                            continue;
+                        }
+                        
+                        // 2. Check if this is a primary animating cell
+                        const anim = animatedPluses.find(ap => ap.c === c && ap.r === r);
+                        if (anim) {
+                            animatedNodesToDraw.push({ x, y, anim });
+                            continue;
+                        }
+                        
+                        // 3. Check if this cell is influenced by any active animations (ripple effect)
+                        let totalPullX = 0;
+                        let totalPullY = 0;
+                        let maxScaleIncrease = 0;
+                        let maxOpacityIncrease = 0;
+                        let isInfluenced = false;
+                        
+                        for (let i = 0; i < animatedPluses.length; i++) {
+                            const ap = animatedPluses[i];
+                            const apX = ap.c * spacing;
+                            const apY = ap.r * spacing;
+                            const adx = apX - x;
+                            const ady = apY - y;
+                            const adist = Math.sqrt(adx * adx + ady * ady);
+                            
+                            const influenceRadius = 120; // Ripple influence radius (covers up to 4 cells)
+                            if (adist < influenceRadius && adist > 0) {
+                                isInfluenced = true;
+                                const elapsed = now - ap.startTime;
+                                const progress = Math.max(0, Math.min(1, elapsed / ap.duration));
+                                
+                                // Wave factor based on the primary animation phase (5 phases total)
+                                // Phase 1: Color Change (0% to 10% progress) -> waveFactor = 0
+                                // Phase 2: Grow (10% to 35% progress) -> waveFactor grows 0 to 1
+                                // Phase 3: Rotate (35% to 65% progress) -> waveFactor remains 1
+                                // Phase 4: Shrink (65% to 90% progress) -> waveFactor shrinks 1 to 0
+                                // Phase 5: Color Restore (90% to 100% progress) -> waveFactor = 0
+                                let waveFactor = 0;
+                                if (progress >= 0.1 && progress < 0.35) {
+                                    waveFactor = (progress - 0.1) / 0.25;
+                                } else if (progress >= 0.35 && progress < 0.65) {
+                                    waveFactor = 1.0;
+                                } else if (progress >= 0.65 && progress < 0.9) {
+                                    waveFactor = 1.0 - ((progress - 0.65) / 0.25);
+                                }
+                                
+                                const factor = 1 - (adist / influenceRadius);
+                                // Linear relationship for direct, natural proportionality to distance
+                                // Subtract from pull to push neighboring pluses AWAY from the expanding center
+                                const pullStrength = 0.45 * factor * waveFactor; 
+                                totalPullX -= adx * pullStrength;
+                                totalPullY -= ady * pullStrength;
+                                
+                                // Increased scale factor to make the growth highly visible and proportional
+                                const scaleInc = 0.65 * factor * waveFactor; 
+                                if (scaleInc > maxScaleIncrease) maxScaleIncrease = scaleInc;
+                                
+                                const opInc = 0.25 * factor * waveFactor; // Highlight slightly
+                                if (opInc > maxOpacityIncrease) maxOpacityIncrease = opInc;
+                            }
+                        }
+                        
+                        if (isInfluenced) {
+                            influencedNodesToDraw.push({
+                                x,
+                                y,
+                                pullX: totalPullX,
+                                pullY: totalPullY,
+                                scaleIncrease: maxScaleIncrease,
+                                opacityIncrease: maxOpacityIncrease
+                            });
+                            continue;
+                        }
+                        
+                        // Otherwise, append idle static plus sign to the batched path (blazing fast)
+                        ctx.moveTo(x - baseRadius, y);
+                        ctx.lineTo(x + baseRadius, y);
+                        ctx.moveTo(x, y - baseRadius);
+                        ctx.lineTo(x, y + baseRadius);
+                    }
+                }
+                
+                // Stroke all batched idle plus signs at once to minimize draw calls
+                ctx.stroke();
+                
+                // Draw active mouse-proximity plus signs
+                for (let i = 0; i < activeNodes.length; i++) {
+                    const node = activeNodes[i];
+                    const factor = 1 - (node.dist / activeRadius);
+                    const size = baseRadius + (maxRadius - baseRadius) * factor * factor;
+                    const opacity = isDark ? (0.15 + 0.70 * factor) : (0.14 + 0.76 * factor);
+                    
+                    const pull = 0.22 * factor * factor;
+                    const drawX = node.x + node.dx * pull;
+                    const drawY = node.y + node.dy * pull;
+                    
+                    const angle = globalAngle * factor;
+                    
+                    ctx.save();
+                    ctx.strokeStyle = isDark ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.translate(drawX, drawY);
+                    ctx.rotate(angle);
+                    ctx.moveTo(-size, 0);
+                    ctx.lineTo(size, 0);
+                    ctx.moveTo(0, -size);
+                    ctx.lineTo(0, size);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // Draw influenced surrounding pluses (grow and pull, but NO rotation)
+                for (let i = 0; i < influencedNodesToDraw.length; i++) {
+                    const node = influencedNodesToDraw[i];
+                    const size = baseRadius * (1 + node.scaleIncrease);
+                    const drawX = node.x + node.pullX;
+                    const drawY = node.y + node.pullY;
+                    const opacity = isDark 
+                        ? (0.15 + node.opacityIncrease) 
+                        : (0.14 + node.opacityIncrease);
+                    
+                    ctx.save();
+                    ctx.strokeStyle = isDark ? `rgba(255, 255, 255, ${opacity})` : `rgba(0, 0, 0, ${opacity})`;
+                    ctx.lineWidth = 1;
+                    ctx.beginPath();
+                    ctx.translate(drawX, drawY);
+                    // NO ROTATION applied here
+                    ctx.moveTo(-size, 0);
+                    ctx.lineTo(size, 0);
+                    ctx.moveTo(0, -size);
+                    ctx.lineTo(0, size);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                // Draw primary background animated pluses individually (5 distinct sequential phases)
+                for (let i = 0; i < animatedNodesToDraw.length; i++) {
+                    const node = animatedNodesToDraw[i];
+                    const elapsed = now - node.anim.startTime;
+                    const progress = Math.max(0, Math.min(1, elapsed / node.anim.duration));
+                    
+                    let currentScale = 1.0;
+                    let currentAngle = 0.0;
+                    
+                    // Base and active opacity thresholds for smooth color transitions
+                    const baseOpacity = isDark ? 0.15 : 0.14;
+                    const activeOpacity = 0.92;
+                    let currentOpacity = activeOpacity;
+                    
+                    // PHASE SEQUENCE: Color Change -> Grow -> Rotate 180° -> Shrink -> Color Restore
+                    if (progress < 0.1) {
+                        // Phase 1: Color Change (0% to 10% progress) - turns dark before growing
+                        const p1 = progress / 0.1;
+                        currentScale = 1.0;
+                        currentAngle = 0.0;
+                        currentOpacity = baseOpacity + (activeOpacity - baseOpacity) * p1;
+                    } else if (progress < 0.35) {
+                        // Phase 2: Grow (10% to 35% progress) - grows while keeping color dark
+                        const p2 = (progress - 0.1) / 0.25;
+                        currentScale = 1.0 + (node.anim.maxScale - 1.0) * p2;
+                        currentAngle = 0.0;
+                        currentOpacity = activeOpacity;
+                    } else if (progress < 0.65) {
+                        // Phase 3: Rotate (35% to 65% progress) - rotates 180 deg at peak size and dark color
+                        const p3 = (progress - 0.35) / 0.3;
+                        currentScale = node.anim.maxScale;
+                        currentAngle = p3 * Math.PI; // Rotate 0 to 180 degrees smoothly
+                        currentOpacity = activeOpacity;
+                    } else if (progress < 0.9) {
+                        // Phase 4: Shrink (65% to 90% progress) - shrinks back to 1.0, stays rotated and dark
+                        const p4 = (progress - 0.65) / 0.25;
+                        currentScale = node.anim.maxScale - (node.anim.maxScale - 1.0) * p4;
+                        currentAngle = Math.PI;
+                        currentOpacity = activeOpacity;
+                    } else {
+                        // Phase 5: Color Restore (90% to 100% progress) - fades color back to original, stays rotated/1.0
+                        const p5 = (progress - 0.9) / 0.1;
+                        currentScale = 1.0;
+                        currentAngle = Math.PI;
+                        currentOpacity = activeOpacity - (activeOpacity - baseOpacity) * p5;
+                    }
+                    
+                    const size = baseRadius * currentScale;
+                    
+                    // Construct the stroke color using the computed opacity
+                    const strokeColor = isDark ? `rgba(255, 255, 255, ${currentOpacity})` : `rgba(0, 0, 0, ${currentOpacity})`;
+                    // Scale line width slightly with size for bold digital HUD look
+                    const lineWidth = isDark ? (1 + (currentScale - 1) * 0.4) : (1 + (currentScale - 1) * 0.3);
+                    
+                    ctx.save();
+                    ctx.strokeStyle = strokeColor;
+                    ctx.lineWidth = lineWidth;
+                    ctx.beginPath();
+                    ctx.translate(node.x, node.y);
+                    ctx.rotate(currentAngle);
+                    ctx.moveTo(-size, 0);
+                    ctx.lineTo(size, 0);
+                    ctx.moveTo(0, -size);
+                    ctx.lineTo(0, size);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+                
+                requestAnimationFrame(draw);
+            }
+            requestAnimationFrame(draw);
+        }
+
+
+
+        // TRACK MOUSE MOVEMENT FOR FOOTER COORDS
+        function trackMouseMovement() {
+            document.body.addEventListener('mousemove', function(e) {
+                const x = (e.clientX / window.innerWidth * 100).toFixed(2).padStart(6, '0');
+                const y = (e.clientY / window.innerHeight * 100).toFixed(2).padStart(6, '0');
+                document.getElementById('mouseCoords').innerText = `X_COORD: ${x} / Y_COORD: ${y}`;
+            });
+        }
+
+        // THEME TOGGLE (DARK / LIGHT MODE)
+        function toggleTheme() {
+            const body = document.body;
+            body.classList.toggle('dark-theme');
+            const isDark = body.classList.contains('dark-theme');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            updateThemeIcon(isDark);
+        }
+
+        function updateThemeIcon(isDark) {
+            const icon = document.getElementById('themeIcon');
+            if (isDark) {
+                // Sun icon
+                icon.innerHTML = '<circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>';
+            } else {
+                // Moon icon
+                icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>';
+            }
+        }
+
+        // TAB SWITCHER
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(el => el.classList.remove('active'));
+
+            // Show selected tab
+            document.getElementById(`tab-${tabId}`).classList.add('active');
+            
+            // Find tab button and activate it
+            const tabBtn = Array.from(document.querySelectorAll('.nav-tab')).find(btn => btn.innerText.toLowerCase() === tabId);
+            if (tabBtn) tabBtn.classList.add('active');
+
+            // Toggle timeline visibility: only show on the 'verify' page, but keep space on other tabs for layout consistency
+            const timelineContainer = document.querySelector('.timeline-container');
+            if (timelineContainer) {
+                if (tabId === 'verify') {
+                    timelineContainer.style.visibility = 'visible';
+                    timelineContainer.style.opacity = '1';
+                    updateVerifyTimelineState();
+                } else {
+                    timelineContainer.style.visibility = 'hidden';
+                    timelineContainer.style.opacity = '0';
+                }
+            }
+
+            // Trigger data fetches
+            if (tabId === 'logs') {
+                fetchWatchlistLogs();
+            }
+        }
+
+        // UPDATE VERIFY TIMELINE STATE BASED ON ACTUAL SEARCH UI STATE
+        function updateVerifyTimelineState() {
+            const progress = document.getElementById('timelineProgress');
+            const stepInitiation = document.getElementById('stepInitiation');
+            const stepUpload = document.getElementById('stepUpload');
+            const stepAnalysis = document.getElementById('stepAnalysis');
+            const stepIdentification = document.getElementById('stepIdentification');
+
+            if (!progress || !stepInitiation || !stepUpload || !stepAnalysis || !stepIdentification) return;
+
+            // Reset all steps classes
+            document.querySelectorAll('.step').forEach(el => {
+                el.classList.remove('active', 'completed');
+            });
+
+            const resultsActive = document.getElementById('integratedResults').classList.contains('active');
+            const scanActive = document.getElementById('scanOverlay').classList.contains('active');
+
+            if (resultsActive) {
+                progress.style.width = '100%';
+                stepInitiation.classList.add('completed');
+                stepUpload.classList.add('completed');
+                stepAnalysis.classList.add('completed');
+                stepIdentification.classList.add('active');
+            } else if (scanActive) {
+                progress.style.width = '66%';
+                stepInitiation.classList.add('completed');
+                stepUpload.classList.add('completed');
+                stepAnalysis.classList.add('active');
+            } else {
+                progress.style.width = '33%';
+                stepInitiation.classList.add('completed');
+                stepUpload.classList.add('active');
+            }
+        }
+
+        // RESET SEARCH TIMELINE BACK TO INITIAL UPLOAD STATE
+        function resetSearchTimeline() {
+            updateVerifyTimelineState();
+        }
+
+        // MODALITY SWITCHER (WHEEL DIAL & INTERACTIVITY)
+        function selectModality(modKey) {
+            activeModality = modKey;
+            const data = MODALITIES[modKey];
+            
+            // Update node active states
+            document.querySelectorAll('.wheel-node').forEach(node => node.classList.remove('active'));
+            const idx = MODALITY_ORDER.indexOf(modKey);
+            const activeNode = document.getElementById(`node-${modKey}`);
+            if (activeNode) activeNode.classList.add('active');
+
+            // Rotate the wheel SVG (Symmetric 120-degree alignments)
+            document.getElementById('svgWheel').style.transform = `rotate(${-idx * 120}deg)`;
+
+            // Update center icon
+            document.getElementById('centerIcon').innerHTML = data.icon;
+
+            // Update descriptions
+            document.getElementById('modeTitle').innerText = data.title;
+            document.getElementById('modeDesc').innerText = data.desc;
+
+            // Update tags
+            const tagContainer = document.getElementById('modeTags');
+            tagContainer.innerHTML = '';
+            data.tags.forEach(tag => {
+                const tagEl = document.createElement('span');
+                tagEl.className = 'tech-tag';
+                tagEl.innerText = `[ ${tag} ]`;
+                tagContainer.appendChild(tagEl);
+            });
+
+            // Update uploader area based on whether this active modality has an uploaded probe
+            displayActiveModalityFilePreview();
+        }
+
+        function rotateWheelNext() {
+            const currentIdx = MODALITY_ORDER.indexOf(activeModality);
+            const nextIdx = (currentIdx + 1) % MODALITY_ORDER.length;
+            selectModality(MODALITY_ORDER[nextIdx]);
+        }
+
+        function rotateWheelPrev() {
+            const currentIdx = MODALITY_ORDER.indexOf(activeModality);
+            const prevIdx = (currentIdx - 1 + MODALITY_ORDER.length) % MODALITY_ORDER.length;
+            selectModality(MODALITY_ORDER[prevIdx]);
+        }
+
+        // Initialize mouse wheel scrolling on the neural wheel
+        document.addEventListener('DOMContentLoaded', () => {
+            const wheelContainer = document.querySelector('.wheel-container');
+            if (wheelContainer) {
+                let scrollAccumulator = 0;
+                let lastScrollTime = 0;
+                const SCROLL_THRESHOLD = 120; // Accumulate delta Y to avoid high-sensitivity jumping
+                const SCROLL_COOLDOWN = 350;   // Minimum time in ms between modality shifts
+                
+                wheelContainer.addEventListener('wheel', function(event) {
+                    event.preventDefault(); // Stop normal viewport scroll
+                    
+                    const now = Date.now();
+                    if (now - lastScrollTime < SCROLL_COOLDOWN) {
+                        scrollAccumulator = 0;
+                        return;
+                    }
+                    
+                    scrollAccumulator += event.deltaY;
+                    
+                    if (Math.abs(scrollAccumulator) >= SCROLL_THRESHOLD) {
+                        if (scrollAccumulator > 0) {
+                            rotateWheelNext();
+                        } else {
+                            rotateWheelPrev();
+                        }
+                        lastScrollTime = now;
+                        scrollAccumulator = 0;
+                    }
+                }, { passive: false });
+                
+                // Reset accumulator on mouse leave to prevent carry-over drift
+                wheelContainer.addEventListener('mouseleave', () => {
+                    scrollAccumulator = 0;
+                });
+            }
+        });
+
+        // FILE SELECTION HANDLING
+        function triggerFileInput(inputId) {
+            document.getElementById(inputId).click();
+        }
+
+        function handleFileSelected(input, type) {
+            const file = input.files[0];
+            if (!file) return;
+
+            // Ensure extension matches active modality
+            if (type === 'search') {
+                const ext = '.' + file.name.split('.').pop().toLowerCase();
+                const allowed = MODALITIES[activeModality].allowedExt;
+                if (!allowed.includes(ext)) {
+                    alert(`Invalid file format for ${MODALITIES[activeModality].title}. Allowed formats: ${allowed.join(', ')}`);
+                    input.value = '';
+                    return;
+                }
+            }
+
+            // Create file reader to convert to base64
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Data = e.target.result.split(',')[1];
+                
+                const fileObj = {
+                    name: file.name,
+                    size: file.size,
+                    type: file.type,
+                    base64: base64Data,
+                    rawUrl: e.target.result
+                };
+
+                if (type === 'search') {
+                    // Save file specifically to the active modality store
+                    selectedFiles.search[activeModality] = fileObj;
+                    
+                    // Add uploaded indication to the wheel node button!
+                    const node = document.getElementById(`node-${activeModality}`);
+                    if (node) node.classList.add('uploaded');
+                    
+                    // Update integrated probes status uploader box
+                    updateProbesStatusIndicator();
+                    
+                    // Render uploader preview
+                    displayActiveModalityFilePreview();
+                } else if (type === 'enroll') {
+                    selectedFiles.enroll = fileObj;
+                    displayEnrollFilePreview();
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Display uploader preview ONLY for the active modality
+        function displayActiveModalityFilePreview() {
+            const file = selectedFiles.search[activeModality];
+            const zone = document.getElementById('searchPreviewZone');
+            const nameEl = document.getElementById('searchFileName');
+            const mediaContainer = document.getElementById('searchMediaContainer');
+
+            if (!file) {
+                zone.classList.remove('active');
+                mediaContainer.innerHTML = '';
+                return;
+            }
+
+            nameEl.innerText = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+            mediaContainer.innerHTML = '';
+            
+            // Display media preview based on file type
+            if (file.type.startsWith('image/')) {
+                const img = document.createElement('img');
+                img.src = file.rawUrl;
+                img.className = 'preview-media';
+                mediaContainer.appendChild(img);
+            } else if (file.type.startsWith('video/')) {
+                const vid = document.createElement('video');
+                vid.src = file.rawUrl;
+                vid.className = 'preview-media';
+                mediaContainer.appendChild(vid);
+            } else if (file.type.startsWith('audio/')) {
+                const aud = document.createElement('div');
+                aud.style.fontSize = '18px';
+                aud.style.fontWeight = 'bold';
+                aud.style.color = 'var(--accent-green)';
+                aud.innerText = 'WAV AUDIO LOADED';
+                mediaContainer.appendChild(aud);
+            } else {
+                const icon = document.createElement('div');
+                icon.style.fontSize = '20px';
+                icon.innerText = 'FILE LOADED';
+                mediaContainer.appendChild(icon);
+            }
+            
+            zone.classList.add('active');
+        }
+
+        // Display uploader preview for identity enrollment
+        function displayEnrollFilePreview() {
+            const file = selectedFiles.enroll;
+            const zone = document.getElementById('enrollPreviewZone');
+            const nameEl = document.getElementById('enrollFileName');
+            
+            nameEl.innerText = `${file.name} (${(file.size / 1024).toFixed(1)} KB)`;
+            zone.classList.add('active');
+            document.getElementById('enrollBtn').disabled = false;
+        }
+
+        // Update the integrated probe upload checkmarks
+        function updateProbesStatusIndicator() {
+            let hasAny = false;
+            
+            for (let key of ['FACE', 'VOICE', 'GAIT']) {
+                const file = selectedFiles.search[key];
+                const statusVal = document.getElementById(`statusVal-${key}`);
+                
+                if (file) {
+                    statusVal.innerText = `${file.name.substring(0, 15)}${file.name.length > 15 ? '...' : ''} (${(file.size/1024).toFixed(0)}KB) ✓`;
+                    statusVal.className = 'probe-status-val loaded';
+                    hasAny = true;
+                } else {
+                    statusVal.innerText = 'Empty';
+                    statusVal.className = 'probe-status-val';
+                }
+            }
+            
+            // Enable start combined scan button if at least one file is uploaded
+            document.getElementById('startScanBtn').disabled = !hasAny;
+        }
+
+        function clearSelectedFile(type) {
+            if (type === 'search') {
+                selectedFiles.search[activeModality] = null;
+                document.getElementById('searchFileInput').value = '';
+                
+                // Remove uploaded indicator from wheel node
+                const node = document.getElementById(`node-${activeModality}`);
+                if (node) node.classList.remove('uploaded');
+                
+                updateProbesStatusIndicator();
+                displayActiveModalityFilePreview();
+            } else if (type === 'enroll') {
+                selectedFiles.enroll = null;
+                document.getElementById('enrollFileInput').value = '';
+                document.getElementById('enrollPreviewZone').classList.remove('active');
+                document.getElementById('enrollBtn').disabled = true;
+            }
+        }
+
+        // SYSTEM LOGIC: 1-to-N MULTI-MODALITY COMBINED SEARCH SCAN
+        function initiateDatabaseScan() {
+            // Collect all uploaded files
+            let payloadFiles = {};
+            let hasAny = false;
+            
+            for (let key of ['FACE', 'VOICE', 'GAIT']) {
+                if (selectedFiles.search[key]) {
+                    payloadFiles[key] = {
+                        file_data: selectedFiles.search[key].base64,
+                        filename: selectedFiles.search[key].name
+                    };
+                    hasAny = true;
+                }
+            }
+            
+            if (!hasAny) return;
+
+            const progress = document.getElementById('timelineProgress');
+            const stepUpload = document.getElementById('stepUpload');
+            const stepAnalysis = document.getElementById('stepAnalysis');
+            const stepIdentification = document.getElementById('stepIdentification');
+
+            // Start timeline progression
+            stepUpload.classList.remove('active');
+            stepUpload.classList.add('completed');
+            stepAnalysis.classList.add('active');
+            progress.style.width = '66%';
+
+            // Show scanning overlay
+            const overlay = document.getElementById('scanOverlay');
+            overlay.classList.add('active');
+
+            // Combined Fusion Backend API Call
+            fetch(`${API_BASE}/identify_combined`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ files: payloadFiles })
+            })
+            .then(res => res.json())
+            .then(data => {
+                overlay.classList.remove('active');
+                stepAnalysis.classList.remove('active');
+                stepAnalysis.classList.add('completed');
+                stepIdentification.classList.add('active');
+                progress.style.width = '100%';
+
+                if (data.error) {
+                    alert(`Combined Scan Failed: ${data.error}`);
+                    resetSearchTimeline();
+                    return;
+                }
+
+                displaySearchResults(data);
+            })
+            .catch(err => {
+                overlay.classList.remove('active');
+                alert(`Scan Connection Error: ${err}`);
+                resetSearchTimeline();
+            });
+        }
+
+        // DISPLAY Combined forensic search results inside card
+        function displaySearchResults(res) {
+            // Hide standard card contents, show results panel (zero scroll)
+            document.getElementById('searchActiveContent').style.display = 'none';
+            
+            const resultsBox = document.getElementById('integratedResults');
+            const alertBox = document.getElementById('matchAlert');
+            const pName = document.getElementById('resultPersonName');
+            const uuidVal = document.getElementById('resultUUID');
+            const scoreVal = document.getElementById('resultScore');
+            const scannedCount = document.getElementById('resultScannedCount');
+
+            scannedCount.innerText = `Scanned ${res.scanned_count} watchlist records`;
+
+            if (res.status === 'empty_db') {
+                alertBox.className = 'match-alert no-match';
+                alertBox.innerText = 'Database Empty';
+                pName.innerText = 'No enrolled templates';
+                uuidVal.innerText = 'N/A';
+                scoreVal.innerText = '0.00%';
+                document.getElementById('resDetail-FACE').innerText = 'N/A';
+                document.getElementById('resDetail-VOICE').innerText = 'N/A';
+                document.getElementById('resDetail-GAIT').innerText = 'N/A';
+            } else if (res.is_match) {
+                alertBox.className = 'match-alert match';
+                alertBox.innerText = 'FUSED MATCH FOUND';
+                pName.innerText = res.person_name;
+                uuidVal.innerText = res.uuid;
+                scoreVal.innerText = `${res.confidence_pct.toFixed(2)}% (Fused Match Score)`;
+                
+                // Show breakdown
+                document.getElementById('resDetail-FACE').innerText = res.confidence_details.FACE;
+                document.getElementById('resDetail-VOICE').innerText = res.confidence_details.VOICE;
+                document.getElementById('resDetail-GAIT').innerText = res.confidence_details.GAIT;
+            } else {
+                alertBox.className = 'match-alert no-match';
+                alertBox.innerText = 'NO FUSED MATCH';
+                pName.innerText = `${res.person_name} (FAILED THRESHOLDS)`;
+                uuidVal.innerText = res.uuid;
+                scoreVal.innerText = `${res.confidence_pct.toFixed(2)}% (Fused Candidate Score)`;
+                
+                // Show breakdown
+                document.getElementById('resDetail-FACE').innerText = res.confidence_details.FACE;
+                document.getElementById('resDetail-VOICE').innerText = res.confidence_details.VOICE;
+                document.getElementById('resDetail-GAIT').innerText = res.confidence_details.GAIT;
+            }
+
+            resultsBox.classList.add('active');
+        }
+
+        // Reset search uploader card and files store
+        function resetSearchState() {
+            document.getElementById('integratedResults').classList.remove('active');
+            document.getElementById('searchActiveContent').style.display = 'flex';
+            
+            // Clear all files
+            selectedFiles.search = {
+                'GAIT': null,
+                'VOICE': null,
+                'FACE': null
+            };
+            
+            // Remove uploaded classes from all nodes
+            for (let key of ['FACE', 'VOICE', 'GAIT']) {
+                const node = document.getElementById(`node-${key}`);
+                if (node) node.classList.remove('uploaded');
+            }
+            
+            document.getElementById('searchFileInput').value = '';
+            
+            updateProbesStatusIndicator();
+            displayActiveModalityFilePreview();
+            resetSearchTimeline();
+        }
+
+        // SYSTEM LOGIC: WATCHLIST IDENTITY ENROLLMENT
+        function submitWatchlistEnrollment() {
+            const file = selectedFiles.enroll;
+            const name = document.getElementById('enrollName').value.trim();
+            const id = document.getElementById('enrollID').value.trim();
+            const modality = document.getElementById('enrollModality').value;
+
+            if (!name || !id || !file) {
+                alert('Please enter subject name, national ID, and upload a baseline sample.');
+                return;
+            }
+
+            const overlay = document.getElementById('enrollOverlay');
+            overlay.classList.add('active');
+
+            const payload = {
+                national_id: id,
+                full_name: name,
+                file_data: file.base64,
+                filename: file.name,
+                modality_key: modality
+            };
+
+            fetch(`${API_BASE}/enroll`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json())
+            .then(data => {
+                overlay.classList.remove('active');
+                
+                if (data.error) {
+                    alert(`Identity Enrollment Failed: ${data.error}`);
+                    return;
+                }
+
+                // Transition to success state inside card
+                document.getElementById('enrollFormContent').style.display = 'none';
+                
+                document.getElementById('enrolledNameVal').innerText = data.name;
+                document.getElementById('enrolledIDVal').innerText = id;
+                document.getElementById('enrolledUUIDVal').innerText = data.uuid;
+                
+                const statusVal = document.getElementById('enrolledStatusVal');
+                if (data.exists) {
+                    statusVal.innerText = 'UPDATED (EXISTS)';
+                    statusVal.style.color = '#ff9100';
+                } else {
+                    statusVal.innerText = 'REGISTERED (NEW)';
+                    statusVal.style.color = 'var(--accent-green)';
+                }
+
+                document.getElementById('enrollSuccessPanel').classList.add('active');
+                
+                // Reset inputs
+                document.getElementById('enrollName').value = '';
+                document.getElementById('enrollID').value = '';
+                clearSelectedFile('enroll');
+                
+                fetchWatchlistLogs();
+            })
+            .catch(err => {
+                overlay.classList.remove('active');
+                alert(`Enrollment Connection Error: ${err}`);
+            });
+        }
+
+        function resetEnrollmentState() {
+            document.getElementById('enrollSuccessPanel').classList.remove('active');
+            document.getElementById('enrollFormContent').style.display = 'flex';
+            clearSelectedFile('enroll');
+        }
+
+        // SYSTEM LOGIC: WATCHLIST DATABASE RECORDS LOGS
+        let enrolledProfiles = [];
+
+        function fetchWatchlistLogs() {
+            const listContainer = document.getElementById('logsList');
+            listContainer.innerHTML = '<div class="logs-empty" style="padding: 20px; text-align: center; color: var(--text-muted);">Loading database...</div>';
+            
+            // Reset detail panel
+            showProfileDetails(null);
+
+            fetch(`${API_BASE}/logs`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'error') {
+                    listContainer.innerHTML = `<div class="logs-empty" style="padding: 20px; text-align: center; color: var(--accent-red)">Failed: ${data.error}</div>`;
+                    return;
+                }
+
+                enrolledProfiles = data.records || [];
+                if (enrolledProfiles.length === 0) {
+                    listContainer.innerHTML = '<div class="logs-empty" style="padding: 20px; text-align: center; color: var(--text-muted);">No profiles enrolled in database</div>';
+                    return;
+                }
+
+                renderProfilesList(enrolledProfiles);
+            })
+            .catch(err => {
+                listContainer.innerHTML = `<div class="logs-empty" style="padding: 20px; text-align: center; color: var(--accent-red)">Connection Error: ${err}</div>`;
+            });
+        }
+
+        function renderProfilesList(profiles) {
+            const listContainer = document.getElementById('logsList');
+            listContainer.innerHTML = '';
+            
+            profiles.forEach(row => {
+                const item = document.createElement('div');
+                item.className = 'log-item';
+                item.setAttribute('id', `log-item-${row.random_id}`);
+                item.setAttribute('data-search', `${row.full_name.toLowerCase()} ${row.national_id}`);
+                
+                item.onclick = () => selectProfileItem(row);
+
+                const nameDiv = document.createElement('div');
+                nameDiv.className = 'log-item-name';
+                nameDiv.innerText = row.full_name;
+                item.appendChild(nameDiv);
+
+                const metaDiv = document.createElement('div');
+                metaDiv.className = 'log-item-meta';
+                metaDiv.innerText = `National ID: ${row.national_id}`;
+                item.appendChild(metaDiv);
+
+                listContainer.appendChild(item);
+            });
+        }
+
+        function selectProfileItem(profile) {
+            document.querySelectorAll('.log-item').forEach(el => el.classList.remove('active'));
+            
+            const item = document.getElementById(`log-item-${profile.random_id}`);
+            if (item) item.classList.add('active');
+            
+            showProfileDetails(profile);
+        }
+
+        function showProfileDetails(profile) {
+            const placeholder = document.getElementById('logsDetailsPlaceholder');
+            const content = document.getElementById('logsDetailsContent');
+            
+            if (!profile) {
+                placeholder.style.display = 'flex';
+                content.style.display = 'none';
+                return;
+            }
+            
+            placeholder.style.display = 'none';
+            content.style.display = 'flex';
+            
+            document.getElementById('detailFullName').innerText = profile.full_name;
+            document.getElementById('detailNationalID').innerText = profile.national_id;
+            document.getElementById('detailUUID').innerText = profile.random_id;
+            document.getElementById('detailModality').innerText = `${profile.template_count} modality template(s) enrolled`;
+        }
+
+        function filterLogs() {
+            const query = document.getElementById('logsSearch').value.toLowerCase().trim();
+            const items = document.querySelectorAll('.log-item');
+
+            items.forEach(item => {
+                const searchStr = item.getAttribute('data-search');
+                if (!searchStr) return;
+
+                if (searchStr.includes(query)) {
+                    item.style.display = '';
+                } else {
+                    item.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>

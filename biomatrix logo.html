@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="he" dir="ltr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Biomatrix Spherical Elastic Logo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #ffffff;
+            color: #000000;
+            font-family: 'JetBrains Mono', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            user-select: none;
+        }
+
+        .matrix-container {
+            display: flex;
+            gap: 32px; 
+            transition: gap 0.7s cubic-bezier(0.25, 1, 0.5, 1);
+            align-items: center;
+        }
+
+        .matrix-container.compressed {
+            gap: 12px; 
+        }
+
+        .column {
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            height: 288px; 
+            width: 28px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bits-wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .bit {
+            font-size: var(--font-size, 30px);
+            opacity: var(--initial-opacity, 1);
+            font-weight: 400;
+            height: 36px;
+            line-height: 36px;
+            text-align: center;
+            transition: transform var(--duration) cubic-bezier(0.4, 0, 0.2, 1), 
+                        opacity var(--duration) cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .letter {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            /* מצב התחלתי מוסתר וקטן */
+            transform: translate(-50%, -50%) scale(0.3); 
+            font-size: 54px;
+            font-weight: 700;
+            opacity: 0;
+            pointer-events: none;
+            /* מעבר חלק עבור שינויי ה-scale והצפיפות */
+            transition: transform 0.6s cubic-bezier(0.25, 1, 0.5, 1), 
+                        opacity 0.25s ease;
+        }
+
+        /* מצב מספרים מכווצים */
+        .column.bits-collapsed .bit {
+            transform: translateY(var(--to-center));
+            opacity: 0;
+        }
+
+        /* מצב אות גלויה במבנה המעגלי (לפני הידוק המילה) */
+        .column.letter-visible .letter {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(var(--letter-scale, 1));
+        }
+
+        /* כאשר המילה מהודקת וצפופה - כל האותיות גדלות באופן אחיד לגודלן המקורי */
+        .matrix-container.compressed .column.letter-visible .letter {
+            transform: translate(-50%, -50%) scale(1);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="matrix-container" id="matrix"></div>
+
+    <script>
+        const word = "Biomatrix"; 
+        const container = document.getElementById('matrix');
+        const rowsCount = 8;
+        const bitHeight = 36;
+        const matrixCenterY = (rowsCount * bitHeight) / 2; 
+
+        const maxColIdx = word.length - 1; 
+        const maxRowIdx = rowsCount - 1;    
+
+        word.split('').forEach((char, colIdx) => {
+            const column = document.createElement('div');
+            column.className = 'column';
+
+            const bitsWrapper = document.createElement('div');
+            bitsWrapper.className = 'bits-wrapper';
+
+            const binaryStr = char.charCodeAt(0).toString(2).padStart(8, '0');
+
+            // מרחק אופקי מנורמל מהמרכז (נע בין 1- ל-1)
+            const normX = (colIdx - (maxColIdx / 2)) / (maxColIdx / 2);
+
+            binaryStr.split('').forEach((bitVal, rowIdx) => {
+                const bit = document.createElement('div');
+                bit.className = 'bit';
+                bit.innerText = bitVal;
+
+                const bitCenter = (rowIdx * bitHeight) + (bitHeight / 2);
+                const distanceToCenter = matrixCenterY - bitCenter;
+                
+                const normY = (rowIdx - (maxRowIdx / 2)) / (maxRowIdx / 2);
+                const radialDist = Math.sqrt(normX * normX + normY * normY); 
+                
+                const sizeFactor = Math.max(0.35, 1 - radialDist * 0.55);
+                const dynamicSize = 32 * sizeFactor;
+                
+                const dynamicOpacity = Math.max(0.35, 1 - radialDist * 0.35);
+                const duration = 0.20 + (Math.abs(distanceToCenter) / matrixCenterY) * 0.25;
+                
+                bit.style.setProperty('--to-center', `${distanceToCenter}px`);
+                bit.style.setProperty('--duration', `${duration}s`);
+                bit.style.setProperty('--font-size', `${dynamicSize}px`);
+                bit.style.setProperty('--initial-opacity', `${dynamicOpacity}`);
+                bitsWrapper.appendChild(bit);
+            });
+
+            const letter = document.createElement('div');
+            letter.className = 'letter';
+            letter.innerText = char;
+            letter.dataset.final = char; 
+
+            // חישוב קנה מידה דינמי לאות לפי מרחקה האופקי מהמרכז
+            // אותיות הקצוות (B, x) יופיעו בהתחלה ב-scale של 0.6 ויגדלו ל-1 בהידוק
+            const letterScale = 1 - Math.abs(normX) * 0.40;
+            letter.style.setProperty('--letter-scale', letterScale);
+
+            column.appendChild(bitsWrapper);
+            column.appendChild(letter);
+            container.appendChild(column);
+        });
+
+        const columns = document.querySelectorAll('.column');
+
+        function scrambleLetter(element, finalChar, duration, callback) {
+            const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@#$%&*+=?";
+            const intervalTime = 35; 
+            const steps = duration / intervalTime;
+            let currentStep = 0;
+
+            const interval = setInterval(() => {
+                if (currentStep >= steps) {
+                    clearInterval(interval);
+                    element.innerText = finalChar; 
+                    if (callback) callback();
+                } else {
+                    element.innerText = chars[Math.floor(Math.random() * chars.length)];
+                    currentStep++;
+                }
+            }, intervalTime);
+        }
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+        async function runAnimationLoop() {
+            const colCount = columns.length;
+            
+            while (true) {
+                await sleep(2500);
+
+                let collapseOrder = Array.from({length: colCount}, (_, i) => i);
+                shuffle(collapseOrder);
+
+                // 1. שלב הכיווץ (Matrix -> Word עם גדלים משתנים)
+                for (let i = 0; i < colCount; i++) {
+                    const colIdx = collapseOrder[i];
+                    const colElement = columns[colIdx];
+                    const letterEl = colElement.querySelector('.letter');
+                    
+                    colElement.classList.add('bits-collapsed');
+                    
+                    setTimeout(() => {
+                        colElement.classList.add('letter-visible');
+                        scrambleLetter(letterEl, letterEl.dataset.final, 300);
+                    }, 150);
+                    
+                    await sleep(80 + Math.random() * 200);
+                }
+
+                // 2. שלב הידוק המילה (צמצום מרווחים וגדילת אותיות הקצוות לגודל מלא)
+                await sleep(500);
+                container.classList.add('compressed');
+
+                await sleep(4000);
+
+                // 3. שחרור והתרחבות חזרה למבנה המעגלי המקורי של המטריצה
+                container.classList.remove('compressed');
+                await sleep(700); 
+
+                let expandOrder = Array.from({length: colCount}, (_, i) => i);
+                shuffle(expandOrder);
+
+                // 4. שלב הפירוק הסימטרי (Word -> Matrix)
+                for (let i = 0; i < colCount; i++) {
+                    const colIdx = expandOrder[i];
+                    const colElement = columns[colIdx];
+                    const letterEl = colElement.querySelector('.letter');
+                    
+                    scrambleLetter(letterEl, letterEl.dataset.final, 300);
+                    
+                    setTimeout(() => {
+                        colElement.classList.remove('bits-collapsed');
+                        colElement.classList.remove('letter-visible');
+                    }, 150);
+                    
+                    await sleep(80 + Math.random() * 200);
+                }
+            }
+        }
+
+        runAnimationLoop();
+    </script>
+</body>
+</html>
