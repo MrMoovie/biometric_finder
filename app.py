@@ -32,7 +32,42 @@ if hasattr(os, 'symlink'):
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 os.environ['TF_ENABLE_ONEDNN_OPTS'] = '0'
 
-st.set_page_config(page_title="Biomatrix Forensic Search", layout="wide")
+# Helper function to crop the favicon image as a centered circle
+def get_circular_icon(image_path):
+    if not os.path.exists(image_path):
+        return None
+    try:
+        from PIL import Image, ImageDraw
+        img = Image.open(image_path).convert("RGBA")
+        
+        # Crop to a centered square first
+        width, height = img.size
+        min_dim = min(width, height)
+        
+        left = (width - min_dim) // 2
+        top = (height - min_dim) // 2
+        right = left + min_dim
+        bottom = top + min_dim
+        img_square = img.crop((left, top, right, bottom))
+        
+        # Create circular mask
+        mask = Image.new("L", (min_dim, min_dim), 0)
+        draw = ImageDraw.Draw(mask)
+        draw.ellipse((0, 0, min_dim, min_dim), fill=255)
+        
+        # Apply the circular mask to create transparent corners
+        img_circle = Image.new("RGBA", (min_dim, min_dim), (0, 0, 0, 0))
+        img_circle.paste(img_square, (0, 0), mask=mask)
+        return img_circle
+    except Exception as e:
+        print(f"Error cropping circular icon: {e}")
+        return None
+
+icon_image = get_circular_icon("b.png")
+if icon_image:
+    st.set_page_config(page_title="Biomatrix Forensic Search", page_icon=icon_image, layout="wide")
+else:
+    st.set_page_config(page_title="Biomatrix Forensic Search", layout="wide")
 
 _engine = None
 _engine_lock = threading.Lock()
